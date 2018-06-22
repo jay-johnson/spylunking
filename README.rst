@@ -10,12 +10,10 @@ This repository is a demo on how to run a local docker splunk container and hook
 
    * - Travis Build
      - Read the Docs
-   * - `Status: <https://travis-ci.org/jay-johnson/spylunking>`__
-       .. image:: https://travis-ci.org/jay-johnson/spylunking.svg?branch=master
+   * - .. image:: https://travis-ci.org/jay-johnson/spylunking.svg?branch=master
            :alt: Travis Test Status
            :target: https://travis-ci.org/jay-johnson/spylunking
-     - `Docs: <http://spylunking.readthedocs.io/en/latest/>`__
-       .. image:: https://readthedocs.org/projects/spylunking/badge/?version=latest
+     - .. image:: https://readthedocs.org/projects/spylunking/badge/?version=latest
            :alt: Read the Docs Status
            :target: http://spylunking.readthedocs.io/en/latest/
 
