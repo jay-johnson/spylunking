@@ -5,6 +5,11 @@ Splunk Python logging, demonstrations and simple search tools.
 
 This repository is a demo on how to run a local docker splunk container and hook up to the Splunk HEC REST API during the logger's initialization. It supports using previously-shared tokens or logging in using user and password as environment variables.
 
+Here's what your logs can look like in Splunk's web app:
+
+.. image:: https://i.imgur.com/IRnx0S1.png
+    :alt: Splunk Webapp Logs from the Spylunking Test App
+
 .. list-table::
    :header-rows: 1
 

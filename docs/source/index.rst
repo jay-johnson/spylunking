@@ -3,17 +3,17 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Spylunking
-----------
-
-This documentation is for the `Spylunking project <https://github.com/jay-johnson/spylunking>`__. This project is a guide for showing how to build a python logger to publish logs to splunk over the HEC interface. It also includes demonstrations, debugging and integration tools.
-
 Spylunking - Splunk + Python Logging
 ------------------------------------
 
-Splunk Python logging, demonstrations and simple search tools.
+This documentation is for the `Spylunking project <https://github.com/jay-johnson/spylunking>`__. This project is a guide for showing how to build a python logger to publish logs to splunk over the HEC interface. It also includes demonstrations, debugging and integration tools.
 
 This repository is a demo on how to run a local docker splunk container and hook up to the Splunk HEC REST API during the logger's initialization. It supports using previously-shared tokens or logging in using user and password as environment variables.
+
+Here's what your logs can look like in Splunk's web app:
+
+.. image:: https://i.imgur.com/IRnx0S1.png
+    :alt: Splunk Webapp Logs from the Spylunking Test App
 
 .. list-table::
    :header-rows: 1
