@@ -15,10 +15,10 @@ fi
 
 if [[ "${action}" == "boot" ]]; then
     echo "pulling boot logs"
-    docker exec -it splunk cat /opt/splunk/service.log
+    docker exec -it splunk cat /opt/splunk/boot.log
 elif [[ "${action}" == "service" ]]; then
     echo "pulling service logs"
-    docker exec -it splunk cat /opt/splunk/boot.log
+    docker exec -it splunk cat /opt/splunk/service.log
 elif [[ "${action}" == "docker" ]]; then
     echo "pulling docker logs"
     docker logs splunk
