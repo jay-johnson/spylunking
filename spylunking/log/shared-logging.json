@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "disable_existing_loggers": false,
+  "formatters": {
+    "colors": {
+      "()": "colorlog.ColoredFormatter",
+      "format": "%(log_color)s%(asctime)s - %(name)s - %(levelname)s - %(message)s%(reset)s"
+    },
+    "no_dates_colors": {
+      "()": "colorlog.ColoredFormatter",
+      "format": "%(log_color)s%(name)s - %(levelname)s - %(message)s%(reset)s"
+    },
+    "splunk": {
+      "()": "spylunking.log.setup_logging.SplunkFormatter",
+      "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s [%(filename)s:%(lineno)s]"
+    }
+  },
+  "handlers": {
+    "console": {
+      "class": "logging.StreamHandler",
+      "level": "INFO",
+      "formatter": "colors",
+      "stream": "ext://sys.stdout"
+    },
+    "simple": {
+      "class": "logging.StreamHandler",
+      "level": "INFO",
+      "formatter": "no_dates_colors",
+      "stream": "ext://sys.stdout"
+    },
+    "splunk": {
+      "class": "splunk_handler.SplunkHandler",
+      "host": "localhost",
+      "port": "8088",
+      "index": "antinex",
+      "token": "ebe8bb62-a41b-4768-b5ec-f8c5953ed2fe",
+      "formatter": "splunk",
+      "sourcetype": "json",
+      "verify": false,
+      "timeout": 10,
+      "flush_interval": 5,
+      "retry_count": 5,
+      "debug": true
+    }
+  },
+  "loggers": {
+    "": {
+      "level": "INFO",
+      "propagate": true
+    }
+  },
+  "root": {
+    "level": "INFO",
+    "propagate": true,
+    "handlers": []
+  }
+}
