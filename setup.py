@@ -63,7 +63,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'spylunking'))
 setup(
     name='spylunking',
     cmdclass={'test': PyTest},
-    version='1.0.7',
+    version='1.0.8',
     description=(
         'Splunk-ready python logging integration, Docker demos and tools'),
     long_description=(

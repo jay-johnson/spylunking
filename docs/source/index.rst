@@ -189,7 +189,7 @@ Logging to Splunk from a Python Shell
 
 Here are python commands to build a colorized, splunk-ready python logger. On startup, the logger will authenticate with splunk using the provided credentials. Once authenticated you can use it like a normal logger.
 
-.. note:: Building a logger and searching support using a pre-existing ``splunk_token=<token string>`` or ``SPLUNK_TOKEN`` environment key
+.. note:: The ``build_colorized_logger`` and ``search`` method also support authentication using a pre-existing ``splunk_token=<token string>`` or by setting a ``SPLUNK_TOKEN`` environment key
 
 ::
 
@@ -277,7 +277,7 @@ Here it is from a python shell:
 Login to Splunk from a Browser
 ------------------------------
 
-Open these urls in a browser that is running on the same host as the **splunk** docker container:
+Open this url in a browser to view the **splunk** container's web application:
 
 http://127.0.0.1:8000
 
@@ -501,6 +501,33 @@ Create Token
         -index antinex \
         -uri 'https://localhost:8089' \
         -auth 'admin:changeme'
+
+Cut and Paste Example
+---------------------
+
+Here is a cut and paste example for python 3:
+
+::
+
+    import json
+    from spylunking.log.setup_logging import build_colorized_logger
+    import spylunking.search as sp
+    from spylunking.ppj import ppj
+    print("build the logger")
+    log = build_colorized_logger(
+        name="spylunking-in-a-shell",
+        splunk_user="trex",
+        splunk_password="123321")
+    print("import the search wrapper")
+    res = sp.search(
+        user="trex",
+        password="123321",
+        address="localhost:8089",
+        query_dict={
+            "search": "search index=\"antinex\" | head 1"
+        })
+    print("pretty print the first record in the result list")
+    log.critical("found search results={}".format(ppj(json.loads(res["record"]["results"][0]["_raw"]))))
 
 Development
 -----------
