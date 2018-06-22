@@ -7,8 +7,8 @@ This repository is a demo on how to run a local docker splunk container and hook
 
 Here's what your logs can look like in Splunk's web app:
 
-.. image:: https://i.imgur.com/IRnx0S1.png
-    :alt: Splunk Webapp Logs from the Spylunking Test App
+.. image:: https://imgur.com/SUdcyWf.png
+    :alt: Splunk web app python logs from the Spylunking test app
 
 .. list-table::
    :header-rows: 1
