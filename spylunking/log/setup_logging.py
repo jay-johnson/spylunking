@@ -4,9 +4,6 @@ Spylunking
 
 Splunk-ready python logging functions, classes and tools
 
-Author: Jay Johnson (https://github.com/jay-johnson)
-License: Apache 2.0
-
 """
 
 import os
