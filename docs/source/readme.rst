@@ -110,11 +110,7 @@ By default the container creates an **antinex** index with a user token for the 
 Get the Test Splunk Logs using the Command Line Tool
 ----------------------------------------------------
 
-::
-
-    spy
-
-Which should return output showing the newly published logs:
+The command line tool called ``spy`` is included with the pip on install. When you run it, it will return the most recent logs from the index (``antinex`` by default) and print them to stdout.
 
 ::
 
@@ -178,6 +174,96 @@ Which should return output showing the newly published logs:
     }
     spy - INFO - done
 
+Logging to Splunk from a Python Shell
+-------------------------------------
+
+Here are python commands to build a colorized, splunk-ready python logger. On startup, the logger will authenticate with splunk using the provided credentials. Once authenticated you can use it like a normal logger.
+
+.. note:: Building a logger and searching support using a pre-existing ``splunk_token=<token string>`` or ``SPLUNK_TOKEN`` environment key
+
+::
+
+    python -c '\
+        import json;\
+        from spylunking.log.setup_logging import build_colorized_logger;\
+        import spylunking.search as sp;\
+        from spylunking.ppj import ppj;\
+        print("build the logger");\
+        log = build_colorized_logger(\
+            name="spylunking-in-a-shell",\
+            splunk_user="trex", \
+            splunk_password="123321");\
+        print("import the search wrapper");\
+        res = sp.search(\
+            user="trex",\
+            password="123321",\
+            address="localhost:8089",\
+            query_dict={\
+                "search": "search index=\"antinex\" | head 1"\
+            });\
+        print("pretty print the first record in the result list");\
+        log.critical("found search results={}".format(ppj(json.loads(res["record"]["results"][0]["_raw"]))))'
+
+Here is sample output from running this command:
+
+::
+
+    build the logger
+    import the search wrapper
+    pretty print the first record in the result list
+    2018-06-21 22:38:38,475 - spylunking-in-a-shell - CRITICAL - found search results={
+        "asctime": "2018-06-21 22:13:36,279",
+        "custom_key": "custom value",
+        "exc": null,
+        "filename": "<stdin>",
+        "levelname": "INFO",
+        "lineno": 1,
+        "logger_name": "spylunking-in-a-shell",
+        "message": "testing from a python shell",
+        "name": "spylunking-in-a-shell",
+        "path": "<stdin>",
+        "tags": [],
+        "timestamp": 1529644416.2790444
+    }
+
+Here it is from a python shell:
+
+::
+
+    python
+    Python 3.6.5 (default, Apr  1 2018, 05:46:30) 
+    [GCC 7.3.0] on linux
+    Type "help", "copyright", "credits" or "license" for more information.
+    >>> from spylunking.log.setup_logging import build_colorized_logger
+    >>> log = build_colorized_logger(
+            name='spylunking-in-a-shell',
+            splunk_user='trex',
+            splunk_password='123321')
+    >>> import spylunking.search as sp
+    >>> res = sp.search(
+            user='trex',
+            password='123321',
+            address="localhost:8089",
+            query_dict={
+                'search': 'search index="antinex" | head 1'
+            })
+    >>> from spylunking.ppj import ppj
+    >>> log.critical('found search results={}'.format(ppj(json.loads(res['record']['results'][0]['_raw']))))
+    2018-06-21 22:31:04,231 - spylunking-in-a-shell - CRITICAL - found search results={
+        "asctime": "2018-06-21 22:13:36,279",
+        "custom_key": "custom value",
+        "exc": null,
+        "filename": "<stdin>",
+        "levelname": "INFO",
+        "lineno": 1,
+        "logger_name": "spylunking-in-a-shell",
+        "message": "testing from a python shell",
+        "name": "spylunking-in-a-shell",
+        "path": "<stdin>",
+        "tags": [],
+        "timestamp": 1529644416.2790444
+    }
+
 Login to Splunk from a Browser
 ------------------------------
 
@@ -192,6 +278,143 @@ password: **123321**
 
 Troubleshooting
 ---------------
+
+Here is a debugging python shell session for showing some common errors you can expect to see as you start to play around with ``spylunking``.
+
+::
+
+    python
+    Python 3.6.5 (default, Apr  1 2018, 05:46:30)
+    [GCC 7.3.0] on linux
+    Type "help", "copyright", "credits" or "license" for more information.
+    >>> from spylunking.log.setup_logging import build_colorized_logger
+    >>> log = build_colorized_logger(
+            name='spylunking-in-a-shell',
+            splunk_user='trex',
+            splunk_password='123321')
+    >>> log.info("testing from a python shell")
+    2018-06-21 22:13:36,279 - spylunking-in-a-shell - INFO - testing from a python shell
+    >>> import spylunking.search as sp
+    >>> res = sp.search(
+            user='trex',
+            password='123321',
+            query_dict={
+                    'search': 'index="antinex" | head 1'
+            },
+            verify=False)
+    >>> log.info('job status={}'.format(res['status']))
+    2018-06-21 22:16:22,158 - spylunking-in-a-shell - INFO - job status=2
+    >>> log.info('job err={}'.format(res['err']))
+    2018-06-21 22:16:28,945 - spylunking-in-a-shell - INFO - job err=Failed to get splunk token for user=trex url=https://None ex=HTTPSConnectionPool(host='none', port=443): Max retries exceeded with url: /services/auth/login (Caused by NewConnectionError('<urllib3.connection.VerifiedHTTPSConnection object at 0x7f869c2f2cc0>: Failed to establish a new connection: [Errno -2] Name or service not known',))
+    >>> print("now search with the url set")
+    now search with the url set
+    >>> res = sp.search(
+            user='trex',
+            password='123321',
+            query_dict={
+                    'search': 'index="antinex" | head 1'
+            },
+            address="localhost:8089")
+    2018-06-21 22:18:15,380 - spylunking.search - ERROR - Failed searching splunk response=<?xml version="1.0" encoding="UTF-8"?>
+    <response>
+    <messages>
+        <msg type="ERROR">Search Factory: Unknown search command 'index'.</msg>
+    </messages>
+    </response>
+    for query={
+        "search": "index=\"antinex\" | head 1"
+    } url=https://localhost:8089/services/search/jobs ex=list index out of range
+    >>> print("now nest the search correctly")
+    now nest the search correctly
+    >>> res = sp.search(
+            user='trex',
+            password='123321',
+            address="localhost:8089",
+            query_dict={
+                    'search': 'search index="antinex" | head 1'
+            })
+    >>> log.info('job status={}'.format(res['status']))
+    2018-06-21 22:20:10,142 - spylunking-in-a-shell - INFO - job status=0
+    >>> log.info('job err={}'.format(res['err']))
+    2018-06-21 22:20:14,667 - spylunking-in-a-shell - INFO - job err=
+    >>> from spylunking.ppj import ppj
+    >>> log.critical('found search results={}'.format(ppj(res['record'])))
+    2018-06-21 22:21:25,977 - spylunking-in-a-shell - CRITICAL - found search results={
+        "fields": [
+            {
+                "name": "_bkt"
+            },
+            {
+                "name": "_cd"
+            },
+            {
+                "name": "_indextime"
+            },
+            {
+                "name": "_raw"
+            },
+            {
+                "name": "_serial"
+            },
+            {
+                "name": "_si"
+            },
+            {
+                "name": "_sourcetype"
+            },
+            {
+                "name": "_subsecond"
+            },
+            {
+                "name": "_time"
+            },
+            {
+                "name": "host"
+            },
+            {
+                "name": "index"
+            },
+            {
+                "name": "linecount"
+            },
+            {
+                "name": "source"
+            },
+            {
+                "name": "sourcetype"
+            },
+            {
+                "name": "splunk_server"
+            }
+        ],
+        "highlighted": {},
+        "init_offset": 0,
+        "messages": [],
+        "preview": false,
+        "results": [
+            {
+                "_bkt": "antinex~0~791398E7-6A0B-4640-B8D5-5D25E7EF3D02",
+                "_cd": "0:3",
+                "_indextime": "1529644419",
+                "_raw": "{\"asctime\": \"2018-06-21 22:13:36,279\", \"name\": \"spylunking-in-a-shell\", \"levelname\": \"INFO\", \"message\": \"testing from a python shell\", \"filename\": \"<stdin>\", \"lineno\": 1, \"timestamp\": 1529644416.2790444, \"path\": \"<stdin>\", \"custom_key\": \"custom value\", \"tags\": [], \"exc\": null, \"logger_name\": \"spylunking-in-a-shell\"}",
+                "_serial": "0",
+                "_si": [
+                    "splunkenterprise",
+                    "antinex"
+                ],
+                "_sourcetype": "json",
+                "_subsecond": ".2792356",
+                "_time": "2018-06-22T05:13:36.279+00:00",
+                "host": "dev",
+                "index": "antinex",
+                "linecount": "1",
+                "source": "<stdin>",
+                "sourcetype": "json",
+                "splunk_server": "splunkenterprise"
+            }
+        ]
+    }
+    >>> exit()
 
 Please refer to the command line tool's updated usage prompt for help searching for logs:
 
