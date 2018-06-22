@@ -13,6 +13,7 @@ This documentation is for the `Spylunking project <https://github.com/jay-johnso
    :caption: Contents:
 
    readme
+   scripts
    api_reference
 
 Indices and tables

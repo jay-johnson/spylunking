@@ -4,11 +4,11 @@ Utilities
 Pretty Print a JSON dictionary
 ==============================
 
-.. automodule:: spylunking.utils.
+.. automodule:: spylunking.ppj
    :members: ppj
 
 Get Environment Key
 ===================
 
-.. automodule:: spylunking.utils.
+.. automodule:: spylunking.ev
    :members: ev

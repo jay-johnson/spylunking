@@ -11,9 +11,9 @@ import datetime
 from spylunking.log.setup_logging import \
     build_colorized_logger
 import spylunking.search as sp
-from spylunking.utils import ev
+from spylunking.ev import ev
 from spylunking.consts import SUCCESS
-from spylunking.utils import ppj
+from spylunking.ppj import ppj
 
 
 log = build_colorized_logger(

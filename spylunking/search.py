@@ -1,3 +1,7 @@
+"""
+Search wrapper for authenticating with Splunk and running a search query.
+"""
+
 import re
 import requests
 import spylunking.get_session_key as get_session_key
@@ -6,7 +10,7 @@ from xml.dom.minidom import parseString
 from spylunking.consts import SUCCESS
 from spylunking.consts import NOT_RUN
 from spylunking.consts import ERR
-from spylunking.utils import ppj
+from spylunking.ppj import ppj
 from spylunking.log.setup_logging import \
     build_colorized_logger
 

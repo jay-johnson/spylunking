@@ -15,7 +15,7 @@ import datetime
 import json
 import logging.config
 import spylunking.get_token as get_token
-from spylunking.utils import ppj
+from spylunking.ppj import ppj
 from pythonjsonlogger import jsonlogger
 
 

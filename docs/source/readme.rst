@@ -1,9 +1,21 @@
-Spylunking
-----------
+Spylunking - Splunk + Python Logging
+------------------------------------
 
-Splunk-ready Python logging, demonstrations and integration tools.
+Splunk Python logging, demonstrations and simple search tools.
 
 This repository is a demo on how to run a local docker splunk container and hook up to the Splunk HEC REST API during the logger's initialization. It supports using previously-shared tokens or logging in using user and password as environment variables.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Travis Build
+     - Read the Docs
+   * - .. image:: https://travis-ci.org/jay-johnson/spylunking.svg?branch=master
+          :alt: Travis Test Status
+          :target: https://travis-ci.org/jay-johnson/spylunking
+     - .. image:: https://readthedocs.org/projects/spylunking/badge/?version=latest
+          :alt: Read the Docs Status
+          :target: http://spylunking.readthedocs.io/en/latest/
 
 Getting Started
 ===============
