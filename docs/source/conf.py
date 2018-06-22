@@ -156,6 +156,3 @@ texinfo_documents = [
      author, 'Spylunking', 'One line description of project.',
      'Miscellaneous'),
 ]
-
-
-# -- Extension configuration -------------------------------------------------
