@@ -19,6 +19,7 @@ from spylunking.ppj import ppj
 log = build_colorized_logger(
     name='search_splunk',
     handler_name='simple')
+
 """
 Additional optional argument values for build_colorized_logger
 ==============================================================
@@ -113,9 +114,6 @@ def run_main():
     address = ev(
         'API_ADDRESS',
         'localhost:8089')
-    login_address = ev(
-        'API_ADDRESS',
-        'localhost:8089')
     host = ev(
         'API_HOST',
         'localhost')
@@ -169,11 +167,9 @@ def run_main():
 
     if verbose:
         log.info((
-            'creating client user={} address={} '
-            'login={} ').format(
+            'creating client user={} address={}').format(
                 user,
-                address,
-                login_address))
+                address))
 
     last_msg = ''
     host = ''
@@ -254,7 +250,7 @@ def run_main():
     res = sp.search(
         user=user,
         password=password,
-        address=login_address,
+        address=address,
         query_dict=search_data,
         verify=verify)
 
