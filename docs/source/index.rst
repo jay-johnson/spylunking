@@ -286,6 +286,99 @@ Here it is from a python shell:
         "timestamp": 1529644416.2790444
     }
 
+Publishing Logs to a Remote Splunk Server
+-----------------------------------------
+
+Set up the environment variables:
+
+::
+
+    SPLUNK_USER=trex
+    SPLUNK_PASSWORD=123321
+    SPLUNK_ADDRESS=splunk:8088
+    SPLUNK_LOGIN_ADDRESS=https://splunk:8089
+
+Run the test tool to verify logs are published:
+
+::
+
+    test_logging.py 
+    2018-06-23 14:39:33,302 - testingsplunk - INFO - testing INFO message_id=45b942e9-3461-4aca-b131-455767baffd1
+    2018-06-23 14:39:33,302 - testingsplunk - ERROR - testing ERROR message_id=611644fb-c503-47ac-a6a4-71b3c2af0026
+    2018-06-23 14:39:33,302 - testingsplunk - CRITICAL - testing CRITICAL message_id=2d840fb2-4eda-452c-bca6-e6750a76de48
+    2018-06-23 14:39:33,302 - testingsplunk - WARNING - testing WARN message_id=79780dca-4a9a-4f35-a787-6194251774e2
+    2018-06-23 14:39:33,303 - testingsplunk - ERROR - Testing EXCEPTION with ex=Throw for testing exceptions message_id=48cedd4d-4975-4d67-8f09-4c8b1237c725
+
+Get the logs with ``sp``
+
+::
+
+    sp -a splunk:8089
+
+Which should return the newly published logs:
+
+::
+
+    sp - INFO - creating client user=trex address=splunk:8089
+    sp - INFO - connecting trex@splunk:8089
+    sp - ERROR - {
+        "asctime": "2018-06-23 14:39:33,303",
+        "custom_key": "custom value",
+        "exc": null,
+        "filename": "test_logging.py",
+        "levelname": "ERROR",
+        "lineno": 41,
+        "logger_name": "testingsplunk",
+        "message": "Testing EXCEPTION with ex=Throw for testing exceptions message_id=48cedd4d-4975-4d67-8f09-4c8b1237c725",
+        "name": "testingsplunk",
+        "path": "/opt/spylunking/spylunking/scripts/test_logging.py",
+        "tags": [],
+        "timestamp": 1529789973.3030903
+    }
+    sp - CRITICAL - {
+        "asctime": "2018-06-23 14:39:33,302",
+        "custom_key": "custom value",
+        "exc": null,
+        "filename": "test_logging.py",
+        "levelname": "CRITICAL",
+        "lineno": 31,
+        "logger_name": "testingsplunk",
+        "message": "testing CRITICAL message_id=2d840fb2-4eda-452c-bca6-e6750a76de48",
+        "name": "testingsplunk",
+        "path": "/opt/spylunking/spylunking/scripts/test_logging.py",
+        "tags": [],
+        "timestamp": 1529789973.302653
+    }
+    sp - ERROR - {
+        "asctime": "2018-06-23 14:39:33,302",
+        "custom_key": "custom value",
+        "exc": null,
+        "filename": "test_logging.py",
+        "levelname": "ERROR",
+        "lineno": 29,
+        "logger_name": "testingsplunk",
+        "message": "testing ERROR message_id=611644fb-c503-47ac-a6a4-71b3c2af0026",
+        "name": "testingsplunk",
+        "path": "/opt/spylunking/spylunking/scripts/test_logging.py",
+        "tags": [],
+        "timestamp": 1529789973.3024428
+    }
+    sp - INFO - {
+        "asctime": "2018-06-23 14:39:33,302",
+        "custom_key": "custom value",
+        "exc": null,
+        "filename": "test_logging.py",
+        "levelname": "INFO",
+        "lineno": 27,
+        "logger_name": "testingsplunk",
+        "message": "testing INFO message_id=45b942e9-3461-4aca-b131-455767baffd1",
+        "name": "testingsplunk",
+        "path": "/opt/spylunking/spylunking/scripts/test_logging.py",
+        "tags": [],
+        "timestamp": 1529789973.3021343
+    }
+    sp - INFO - done
+
 Login to Splunk from a Browser
 ------------------------------
 
