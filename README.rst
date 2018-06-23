@@ -119,6 +119,18 @@ The command line tool called ``sp`` is included with the pip on install. When yo
 
 ::
 
+    sp
+
+If you want to pull logs from splunk with user credentials (``SPLUNK_USER`` and ``SPLUNK_PASSWORD`` as environment variables works too):
+
+::
+
+    sp -u trex -p 123321 -a splunkenterprise:8089
+
+Running ``sp`` should return something like these test logs:
+
+::
+
     sp - INFO - creating client user=trex address=localhost:8089 login=localhost:8089 
     sp - INFO - connecting trex@localhost:8089
     sp - ERROR - {
