@@ -63,7 +63,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'spylunking'))
 setup(
     name='spylunking',
     cmdclass={'test': PyTest},
-    version='1.0.8',
+    version='1.0.9',
     description=(
         'Splunk-ready python logging integration, Docker demos and tools'),
     long_description=(
@@ -88,7 +88,7 @@ setup(
         './spylunking/scripts/show_service_token.py',
         './spylunking/scripts/search_splunk.py',
         './spylunking/scripts/test_logging.py',
-        './spylunking/scripts/spy'
+        './spylunking/scripts/sp'
     ],
     use_2to3=True,
     classifiers=[

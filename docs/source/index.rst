@@ -86,22 +86,22 @@ Please wait a few while the container is getting ready. You may see output like 
 Get Splunk Logs from the Command Line Tool
 ------------------------------------------
 
-Use the command line tool: **spy** to search for recent logs.
+Use the command line tool: **sp** to search for recent logs.
 
 ::
 
-    spy
+    sp
 
 Which will log something like:
 
 ::
 
-    spy - INFO - creating client user=trex address=localhost:8089 login=localhost:8089 
-    spy - INFO - connecting trex@localhost:8089
-    spy - INFO - No matches for search={
+    sp - INFO - creating client user=trex address=localhost:8089 login=localhost:8089 
+    sp - INFO - connecting trex@localhost:8089
+    sp - INFO - No matches for search={
         "search": "search index=\"antinex\" | head 10"
     }
-    spy - INFO - done
+    sp - INFO - done
 
 Write Splunk Logs
 -----------------
@@ -120,13 +120,13 @@ By default the container creates an **antinex** index with a user token for the 
 Get the Test Splunk Logs using the Command Line Tool
 ----------------------------------------------------
 
-The command line tool called ``spy`` is included with the pip on install. When you run it, it will return the most recent logs from the index (``antinex`` by default) and print them to stdout.
+The command line tool called ``sp`` is included with the pip on install. When you run it, it will return the most recent logs from the index (``antinex`` by default) and print them to stdout.
 
 ::
 
-    spy - INFO - creating client user=trex address=localhost:8089 login=localhost:8089 
-    spy - INFO - connecting trex@localhost:8089
-    spy - ERROR - {
+    sp - INFO - creating client user=trex address=localhost:8089 login=localhost:8089 
+    sp - INFO - connecting trex@localhost:8089
+    sp - ERROR - {
         "asctime": "2018-06-21 16:53:25,509",
         "custom_key": "custom value",
         "exc": null,
@@ -140,7 +140,7 @@ The command line tool called ``spy`` is included with the pip on install. When y
         "tags": [],
         "timestamp": 1529625205.5090911
     }
-    spy - CRITICAL - {
+    sp - CRITICAL - {
         "asctime": "2018-06-21 16:53:25,508",
         "custom_key": "custom value",
         "exc": null,
@@ -154,7 +154,7 @@ The command line tool called ``spy`` is included with the pip on install. When y
         "tags": [],
         "timestamp": 1529625205.5082061
     }
-    spy - ERROR - {
+    sp - ERROR - {
         "asctime": "2018-06-21 16:53:25,507",
         "custom_key": "custom value",
         "exc": null,
@@ -168,7 +168,7 @@ The command line tool called ``spy`` is included with the pip on install. When y
         "tags": [],
         "timestamp": 1529625205.5078382
     }
-    spy - INFO - {
+    sp - INFO - {
         "asctime": "2018-06-21 16:53:25,507",
         "custom_key": "custom value",
         "exc": null,
@@ -182,7 +182,7 @@ The command line tool called ``spy`` is included with the pip on install. When y
         "tags": [],
         "timestamp": 1529625205.5072436
     }
-    spy - INFO - done
+    sp - INFO - done
 
 Logging to Splunk from a Python Shell
 -------------------------------------
@@ -430,7 +430,7 @@ Please refer to the command line tool's updated usage prompt for help searching 
 
 ::
 
-    usage: spy [-h] [-u USER] [-p PASSWORD] [-f DATAFILE] [-i INDEX_NAME]
+    usage: sp [-h] [-u USER] [-p PASSWORD] [-f DATAFILE] [-i INDEX_NAME]
            [-a ADDRESS] [-e EARLIEST_TIME_MINUTES] [-l LATEST_TIME_MINUTES]
            [-v VERIFY] [-s]
 

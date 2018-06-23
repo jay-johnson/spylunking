@@ -17,7 +17,7 @@ from spylunking.ppj import ppj
 
 
 log = build_colorized_logger(
-    name='spy',
+    name='sp',
     handler_name='simple')
 # additional optional args:
 #
