@@ -11,7 +11,7 @@ import requests
 import urllib3
 from xml.dom.minidom import parseString
 from spylunking.log.setup_logging import build_colorized_logger
-from spylunking.utils import ev
+from spylunking.ev import ev
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 

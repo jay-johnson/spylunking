@@ -19,21 +19,32 @@ from spylunking.ppj import ppj
 log = build_colorized_logger(
     name='search_splunk',
     handler_name='simple')
-# additional optional args:
-#
-#   splunk_debug=True
-#   splunk_user=os.getenv(
-#       'SPLUNK_USER',
-#       None)
-#   splunk_password=os.getenv(
-#       'SPLUNK_PASSWORD',
-#       None)
-#   splunk_address=os.getenv(
-#       'SPLUNK_ADDRESS',
-#       'localhost:8089')
-#   splunk_token=os.getenv(
-#       'SPLUNK_TOKEN',
-#       None)
+"""
+Additional optional argument values for build_colorized_logger
+==============================================================
+
+::
+
+    # dates on all logs
+    handler_name=None
+    # same as None, shows dates on all logs
+    handler_name=colors
+    # debug authentication issues during
+    # functional integration testing
+    splunk_debug=True
+    splunk_user=os.getenv(
+        'SPLUNK_USER',
+        None)
+    splunk_password=os.getenv(
+        'SPLUNK_PASSWORD',
+        None)
+    splunk_address=os.getenv(
+        'SPLUNK_ADDRESS',
+        'localhost:8089')
+    splunk_token=os.getenv(
+        'SPLUNK_TOKEN',
+        None)
+"""
 
 
 def run_main():
