@@ -447,9 +447,9 @@ Please refer to the command line tool's updated usage prompt for help searching 
 
 For trying the host-only compose file, you may see errors like:
 
-```unable to resolve host splunkenterprise```
+``unable to resolve host splunkenterprise``
 
-Please add ```splunkenterprise``` to the end of the line for ```127.0.0.1``` in your ```/etc/hosts```
+Please add ``splunkenterprise`` to the end of the line for ``127.0.0.1`` in your ``/etc/hosts``
 
 Cleanup
 -------
