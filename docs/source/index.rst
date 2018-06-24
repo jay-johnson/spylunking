@@ -153,8 +153,14 @@ Pull Logs with a Query on the Command Line
 
 ::
 
-    sp -u trex -p 123321 -a splunkenterprise:8089 \
-        -q 'index="antinex" | head 10'
+    sp -q 'index="antinex" AND levelname=INFO | head 10' \
+        -u trex -p 123321 -a splunkenterprise:8089
+    sp - INFO - creating client user=trex address=splunkenterprise:8089
+    sp - INFO - connecting trex@splunkenterprise:8089
+    sp - INFO - testingsplunk.testingsplunk 2018-06-24 01:40:18,313 - testing INFO message_id=74b8fe93-ce07-4b8f-a700-dcf4665416d3 dc= env= source=/opt/spylunking/spylunking/scripts/test_logging.py line=27 ex=None
+    sp - INFO - testingsplunk.testingsplunk 2018-06-24 01:25:19,162 - testing INFO message_id=766e1408-1252-47e2-99db-e3154f5b915a dc= env= source=/opt/spylunking/spylunking/scripts/test_logging.py line=27 ex=None
+    sp - INFO - testingsplunk.testingsplunk 2018-06-24 01:07:36,378 - testing INFO message_id=ce9c91dc-3af9-484d-aeb0-fc09194bb42e dc= env= source=/opt/spylunking/spylunking/scripts/test_logging.py line=27 ex=None
+    sp - INFO - done
 
 Pull Logs with a Query on the Command Line
 ==========================================
@@ -171,7 +177,7 @@ Get First 10 ERROR logs
 
 ::
 
-    sp -q 'index="antinex" AND levelname="ERROR" AND head 10' \
+    sp -q 'index="antinex" AND levelname="ERROR" | head 10' \
         -u trex -p 123321 -a splunkenterprise:8089
 
 Running ``sp`` also works if you want to view the full json fields:
