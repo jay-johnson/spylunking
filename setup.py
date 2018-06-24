@@ -1,7 +1,6 @@
 import os
 import sys
 import warnings
-import unittest
 
 try:
     from setuptools import setup
@@ -50,10 +49,11 @@ install_requires = [
     'mock'
 ]
 
-
-if sys.version_info < (3, 5):
+if sys.version_info < (2, 7):
     warnings.warn(
-        'Less than Python 3.5 is not supported.',
+        'Python 2.6 is no longer officially supported by Fractal. '
+        'If you have any questions, please file an issue on Github '
+        'https://github.com/jay-johnson/spylunking',
         DeprecationWarning)
 
 
@@ -63,11 +63,21 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'spylunking'))
 setup(
     name='spylunking',
     cmdclass={'test': PyTest},
-    version='1.0.16',
+    version='1.0.17',
     description=(
-        'Splunk-ready python logging integration, Docker demos and tools'),
+        'Spylunking - Drill down into your logs with an integrated, '
+        'colorized logger and search tools. Includes a Splunk sandbox '
+        'running in docker.'
+        ''),
     long_description=(
-        'Splunk-ready python logging integration, docker demos and tools'),
+        'Spylunking - Drill down into your logs with an integrated, '
+        'colorized logger and search tools. Includes a Splunk sandbox '
+        'running in docker.'
+        '\n'
+        'A Splunk-ready python logger with search tools for '
+        'quickly finding logs published to the included Splunk '
+        'docker sandbox. '
+        ''),
     author='Jay Johnson',
     author_email='jay.p.h.johnson@gmail.com',
     url='https://github.com/jay-johnson/spylunking',
@@ -96,6 +106,8 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
         'Operating System :: OS Independent',
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 2.7",
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: Implementation :: PyPy',
