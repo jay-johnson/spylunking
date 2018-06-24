@@ -153,7 +153,7 @@ Pull Logs with a Query on the Command Line
 
 ::
 
-    sp -u trex -p 123321 -a splunk:8089 \
+    sp -u trex -p 123321 -a splunkenterprise:8089 \
         -q 'index="antinex" | head 10'
 
 Pull Logs with a Query on the Command Line
@@ -172,7 +172,7 @@ Get First 10 ERROR logs
 ::
 
     sp -q 'index="antinex" AND levelname="ERROR" AND head 10' \
-        -u trex -p 123321 -a splunk:8089
+        -u trex -p 123321 -a splunkenterprise:8089
 
 Running ``sp`` also works if you want to view the full json fields:
 
