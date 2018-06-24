@@ -598,7 +598,7 @@ def build_colorized_logger(
                 'COMPONENT_NAME',
                 ''),
             'dc': os.getenv(
-                'DEPLOYED_DC',
+                'DEPLOY_CONFIG',
                 ''),
             'env': os.getenv(
                 'ENV_NAME',
