@@ -308,8 +308,26 @@ def run_main():
         verify=verify)
 
     if res['status'] == SUCCESS:
-        result_dict = res['record']['results']
-        for ridx, log_record in enumerate(result_dict):
+        result_list = []
+        try:
+            result_list = res['record'].get(
+                'results',
+                result_list)
+            if len(result_list) == 0:
+                log.info((
+                    'No matches for search={} '
+                    'response={}').format(
+                        ppj(search_data),
+                        ppj(res['record'])))
+        except Exception as e:
+            result_list = []
+            log.error((
+                'Failed to find results for the query={} '
+                'with ex={}').format(
+                    ppj(search_data),
+                    e))
+
+        for ridx, log_record in enumerate(result_list):
             org_rec = json.loads(log_record['_raw'])
             if code_view:
                 rec = org_rec
@@ -414,10 +432,6 @@ def run_main():
                             ppj(rec)))
         # end of finding responses
 
-        if len(result_dict) == 0:
-            log.info((
-                'No matches for search={}').format(
-                    ppj(search_data)))
     else:
         log.error((
             'Failed searching splunk with status={} and '
