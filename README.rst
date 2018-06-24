@@ -63,7 +63,6 @@ password: **123321**
     get_splunk_token.py
     955324da-742b-43d4-9746-bcbedf6ae7f4
 
-
 Please wait a few while the container is getting ready. You may see output like this when the ``splunk`` container is not ready yet or stops running:
 
 ::
@@ -91,8 +90,8 @@ Which will log something like:
 
 ::
 
-    sp - INFO - creating client user=trex address=localhost:8089 login=localhost:8089 
-    sp - INFO - connecting trex@localhost:8089
+    sp - INFO - creating client user=trex address=splunkenterprise:8089
+    sp - INFO - connecting trex@splunkenterprise:8089
     sp - INFO - No matches for search={
         "search": "search index=\"antinex\" | head 10"
     }
@@ -106,11 +105,11 @@ By default the container creates an **antinex** index with a user token for the 
 ::
 
     test_logging.py 
-    2018-06-21 16:53:25,507 - testingsplunk - INFO - testing INFO message_id=e5fe48f1-3202-40a8-a6bb-2c483a5730f6
-    2018-06-21 16:53:25,507 - testingsplunk - ERROR - testing ERROR message_id=ace412fc-cda5-4a3e-9018-37c0c8e1b952
-    2018-06-21 16:53:25,508 - testingsplunk - CRITICAL - testing CRITICAL message_id=085e8800-2c45-468c-bc25-6b49514d52d2
-    2018-06-21 16:53:25,508 - testingsplunk - WARNING - testing WARN message_id=4b34d398-382b-467c-932b-ad595ad447b6
-    2018-06-21 16:53:25,509 - testingsplunk - ERROR - Testing EXCEPTION with ex=Throw for testing exceptions message_id=b17de717-2c0e-42d6-a54d-98da8299d76f
+    2018-06-24 01:07:36,378 - testingsplunk - INFO - testing INFO message_id=ce9c91dc-3af9-484d-aeb0-fc09194bb42e
+    2018-06-24 01:07:36,379 - testingsplunk - ERROR - testing ERROR message_id=9227cc2f-f734-4b99-8448-117776ef6bff
+    2018-06-24 01:07:36,379 - testingsplunk - CRITICAL - testing CRITICAL message_id=7271a65d-d563-4231-b24a-b17364044818
+    2018-06-24 01:07:36,379 - testingsplunk - WARNING - testing WARN message_id=54063058-dba1-47ee-a0ab-d654b3140e55
+    2018-06-24 01:07:36,379 - testingsplunk - ERROR - Testing EXCEPTION with ex=Throw for testing exceptions message_id=c1e100f4-202d-48ac-9803-91c4f02c9a92
 
 Get the Test Splunk Logs using the Command Line Tool
 ----------------------------------------------------
@@ -131,63 +130,108 @@ Running ``sp`` should return something like these test logs:
 
 ::
 
-    sp - INFO - creating client user=trex address=localhost:8089 login=localhost:8089 
-    sp - INFO - connecting trex@localhost:8089
+    sp -u trex -p 123321 -a splunkenterprise:8089
+
+    sp - INFO - creating client user=trex address=splunkenterprise:8089
+    sp - INFO - connecting trex@splunkenterprise:8089
+    sp - ERROR - testingsplunk.testingsplunk 2018-06-24 01:07:36,379 - Testing EXCEPTION with ex=Throw for testing exceptions message_id=c1e100f4-202d-48ac-9803-91c4f02c9a92 dc= env= source=/opt/spylunking/spylunking/scripts/test_logging.py line=41 ex=None
+    sp - CRITICAL - testingsplunk.testingsplunk 2018-06-24 01:07:36,379 - testing CRITICAL message_id=7271a65d-d563-4231-b24a-b17364044818 dc= env= source=/opt/spylunking/spylunking/scripts/test_logging.py line=31 ex=None
+    sp - ERROR - testingsplunk.testingsplunk 2018-06-24 01:07:36,379 - testing ERROR message_id=9227cc2f-f734-4b99-8448-117776ef6bff dc= env= source=/opt/spylunking/spylunking/scripts/test_logging.py line=29 ex=None
+    sp - INFO - testingsplunk.testingsplunk 2018-06-24 01:07:36,378 - testing INFO message_id=ce9c91dc-3af9-484d-aeb0-fc09194bb42e dc= env= source=/opt/spylunking/spylunking/scripts/test_logging.py line=27 ex=None
+    sp - INFO - done
+
+Examples
+--------
+
+Pull Logs with a Query on the Command Line
+==========================================
+
+::
+
+    sp -u trex -p 123321 -a splunk:8089 \
+        -q 'index="antinex" | head 10'
+
+Pull Logs with a Query on the Command Line
+==========================================
+
+Get CRITICAL logs
+=================
+
+::
+
+    sp -q 'index="antinex" AND levelname="CRITICAL"'
+
+Get First 10 ERROR logs
+=======================
+
+::
+
+    sp -q 'index="antinex" AND levelname="ERROR" AND head 10' \
+        -u trex -p 123321 -a splunk:8089
+
+Running ``sp`` also works if you want to view the full json fields:
+
+::
+
+    sp -j -u trex -p 123321 -a splunkenterprise:8089
+
+    sp - INFO - creating client user=trex address=splunkenterprise:8089
+    sp - INFO - connecting trex@splunkenterprise:8089
     sp - ERROR - {
-        "asctime": "2018-06-21 16:53:25,509",
+        "asctime": "2018-06-24 01:07:36,379",
         "custom_key": "custom value",
         "exc": null,
         "filename": "test_logging.py",
         "levelname": "ERROR",
-        "lineno": 34,
+        "lineno": 41,
         "logger_name": "testingsplunk",
-        "message": "Testing EXCEPTION with ex=Throw for testing exceptions message_id=b17de717-2c0e-42d6-a54d-98da8299d76f",
+        "message": "Testing EXCEPTION with ex=Throw for testing exceptions message_id=c1e100f4-202d-48ac-9803-91c4f02c9a92",
         "name": "testingsplunk",
-        "path": "<redacted>/spylunking/scripts/test_logging.py",
+        "path": "/opt/spylunking/spylunking/scripts/test_logging.py",
         "tags": [],
-        "timestamp": 1529625205.5090911
+        "timestamp": 1529827656.3798487
     }
     sp - CRITICAL - {
-        "asctime": "2018-06-21 16:53:25,508",
+        "asctime": "2018-06-24 01:07:36,379",
         "custom_key": "custom value",
         "exc": null,
         "filename": "test_logging.py",
         "levelname": "CRITICAL",
-        "lineno": 24,
+        "lineno": 31,
         "logger_name": "testingsplunk",
-        "message": "testing CRITICAL message_id=085e8800-2c45-468c-bc25-6b49514d52d2",
+        "message": "testing CRITICAL message_id=7271a65d-d563-4231-b24a-b17364044818",
         "name": "testingsplunk",
-        "path": "<redacted>/spylunking/scripts/test_logging.py",
+        "path": "/opt/spylunking/spylunking/scripts/test_logging.py",
         "tags": [],
-        "timestamp": 1529625205.5082061
+        "timestamp": 1529827656.3794894
     }
     sp - ERROR - {
-        "asctime": "2018-06-21 16:53:25,507",
+        "asctime": "2018-06-24 01:07:36,379",
         "custom_key": "custom value",
         "exc": null,
         "filename": "test_logging.py",
         "levelname": "ERROR",
-        "lineno": 22,
+        "lineno": 29,
         "logger_name": "testingsplunk",
-        "message": "testing ERROR message_id=ace412fc-cda5-4a3e-9018-37c0c8e1b952",
+        "message": "testing ERROR message_id=9227cc2f-f734-4b99-8448-117776ef6bff",
         "name": "testingsplunk",
-        "path": "<redacted>/spylunking/scripts/test_logging.py",
+        "path": "/opt/spylunking/spylunking/scripts/test_logging.py",
         "tags": [],
-        "timestamp": 1529625205.5078382
+        "timestamp": 1529827656.3792682
     }
     sp - INFO - {
-        "asctime": "2018-06-21 16:53:25,507",
+        "asctime": "2018-06-24 01:07:36,378",
         "custom_key": "custom value",
         "exc": null,
         "filename": "test_logging.py",
         "levelname": "INFO",
-        "lineno": 20,
+        "lineno": 27,
         "logger_name": "testingsplunk",
-        "message": "testing INFO message_id=e5fe48f1-3202-40a8-a6bb-2c483a5730f6",
+        "message": "testing INFO message_id=ce9c91dc-3af9-484d-aeb0-fc09194bb42e",
         "name": "testingsplunk",
-        "path": "<redacted>/spylunking/scripts/test_logging.py",
+        "path": "/opt/spylunking/spylunking/scripts/test_logging.py",
         "tags": [],
-        "timestamp": 1529625205.5072436
+        "timestamp": 1529827656.3789432
     }
     sp - INFO - done
 
@@ -288,90 +332,38 @@ Set up the environment variables:
 
 ::
 
-    SPLUNK_USER=trex
-    SPLUNK_PASSWORD=123321
-    SPLUNK_ADDRESS=splunk:8088
-    SPLUNK_LOGIN_ADDRESS=https://splunk:8089
+    export SPLUNK_API_ADDRESS="splunkenterprise:8089"
+    export SPLUNK_ADDRESS="splunkenterprise:8088"
+    export SPLUNK_USER="trex"
+    export SPLUNK_PASSWORD="123321"
 
 Run the test tool to verify logs are published:
 
 ::
 
     test_logging.py 
-    2018-06-23 14:39:33,302 - testingsplunk - INFO - testing INFO message_id=45b942e9-3461-4aca-b131-455767baffd1
-    2018-06-23 14:39:33,302 - testingsplunk - ERROR - testing ERROR message_id=611644fb-c503-47ac-a6a4-71b3c2af0026
-    2018-06-23 14:39:33,302 - testingsplunk - CRITICAL - testing CRITICAL message_id=2d840fb2-4eda-452c-bca6-e6750a76de48
-    2018-06-23 14:39:33,302 - testingsplunk - WARNING - testing WARN message_id=79780dca-4a9a-4f35-a787-6194251774e2
-    2018-06-23 14:39:33,303 - testingsplunk - ERROR - Testing EXCEPTION with ex=Throw for testing exceptions message_id=48cedd4d-4975-4d67-8f09-4c8b1237c725
+    2018-06-24 01:07:36,378 - testingsplunk - INFO - testing INFO message_id=ce9c91dc-3af9-484d-aeb0-fc09194bb42e
+    2018-06-24 01:07:36,379 - testingsplunk - ERROR - testing ERROR message_id=9227cc2f-f734-4b99-8448-117776ef6bff
+    2018-06-24 01:07:36,379 - testingsplunk - CRITICAL - testing CRITICAL message_id=7271a65d-d563-4231-b24a-b17364044818
+    2018-06-24 01:07:36,379 - testingsplunk - WARNING - testing WARN message_id=54063058-dba1-47ee-a0ab-d654b3140e55
+    2018-06-24 01:07:36,379 - testingsplunk - ERROR - Testing EXCEPTION with ex=Throw for testing exceptions message_id=c1e100f4-202d-48ac-9803-91c4f02c9a92
 
 Get the logs with ``sp``
 
 ::
 
-    sp -a splunk:8089
+    sp -a splunkenterprise:8089
 
 Which should return the newly published logs:
 
 ::
 
-    sp - INFO - creating client user=trex address=splunk:8089
-    sp - INFO - connecting trex@splunk:8089
-    sp - ERROR - {
-        "asctime": "2018-06-23 14:39:33,303",
-        "custom_key": "custom value",
-        "exc": null,
-        "filename": "test_logging.py",
-        "levelname": "ERROR",
-        "lineno": 41,
-        "logger_name": "testingsplunk",
-        "message": "Testing EXCEPTION with ex=Throw for testing exceptions message_id=48cedd4d-4975-4d67-8f09-4c8b1237c725",
-        "name": "testingsplunk",
-        "path": "/opt/spylunking/spylunking/scripts/test_logging.py",
-        "tags": [],
-        "timestamp": 1529789973.3030903
-    }
-    sp - CRITICAL - {
-        "asctime": "2018-06-23 14:39:33,302",
-        "custom_key": "custom value",
-        "exc": null,
-        "filename": "test_logging.py",
-        "levelname": "CRITICAL",
-        "lineno": 31,
-        "logger_name": "testingsplunk",
-        "message": "testing CRITICAL message_id=2d840fb2-4eda-452c-bca6-e6750a76de48",
-        "name": "testingsplunk",
-        "path": "/opt/spylunking/spylunking/scripts/test_logging.py",
-        "tags": [],
-        "timestamp": 1529789973.302653
-    }
-    sp - ERROR - {
-        "asctime": "2018-06-23 14:39:33,302",
-        "custom_key": "custom value",
-        "exc": null,
-        "filename": "test_logging.py",
-        "levelname": "ERROR",
-        "lineno": 29,
-        "logger_name": "testingsplunk",
-        "message": "testing ERROR message_id=611644fb-c503-47ac-a6a4-71b3c2af0026",
-        "name": "testingsplunk",
-        "path": "/opt/spylunking/spylunking/scripts/test_logging.py",
-        "tags": [],
-        "timestamp": 1529789973.3024428
-    }
-    sp - INFO - {
-        "asctime": "2018-06-23 14:39:33,302",
-        "custom_key": "custom value",
-        "exc": null,
-        "filename": "test_logging.py",
-        "levelname": "INFO",
-        "lineno": 27,
-        "logger_name": "testingsplunk",
-        "message": "testing INFO message_id=45b942e9-3461-4aca-b131-455767baffd1",
-        "name": "testingsplunk",
-        "path": "/opt/spylunking/spylunking/scripts/test_logging.py",
-        "tags": [],
-        "timestamp": 1529789973.3021343
-    }
+    sp - INFO - creating client user=trex address=splunkenterprise:8089
+    sp - INFO - connecting trex@splunkenterprise:8089
+    sp - ERROR - testingsplunk.testingsplunk 2018-06-24 01:07:36,379 - Testing EXCEPTION with ex=Throw for testing exceptions message_id=c1e100f4-202d-48ac-9803-91c4f02c9a92 dc= env= source=/opt/spylunking/spylunking/scripts/test_logging.py line=41 ex=None
+    sp - CRITICAL - testingsplunk.testingsplunk 2018-06-24 01:07:36,379 - testing CRITICAL message_id=7271a65d-d563-4231-b24a-b17364044818 dc= env= source=/opt/spylunking/spylunking/scripts/test_logging.py line=31 ex=None
+    sp - ERROR - testingsplunk.testingsplunk 2018-06-24 01:07:36,379 - testing ERROR message_id=9227cc2f-f734-4b99-8448-117776ef6bff dc= env= source=/opt/spylunking/spylunking/scripts/test_logging.py line=29 ex=None
+    sp - INFO - testingsplunk.testingsplunk 2018-06-24 01:07:36,378 - testing INFO message_id=ce9c91dc-3af9-484d-aeb0-fc09194bb42e dc= env= source=/opt/spylunking/spylunking/scripts/test_logging.py line=27 ex=None
     sp - INFO - done
 
 Login to Splunk from a Browser

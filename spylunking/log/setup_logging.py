@@ -98,11 +98,11 @@ class SplunkFormatter(jsonlogger.JsonFormatter):
                 record,
                 self.datefmt)
 
-        if record.exc_info and not message.get('exc_info'):
+        if record.exc_info and not message.get('exc'):
             message['exc'] = self.formatException(
                 record.exc_info)
         if not message.get(
-                'exc_info') and record.exc_text:
+                'exc') and record.exc_text:
             message['exc'] = record.exc_text
 
         log_record = {}
@@ -168,9 +168,19 @@ def setup_logging(
     if os.getenv(
             'LOG_DICT',
             False):
-        config = json.loads(os.getenv(
-            'LOG_DICT',
-            None).strip())
+        try:
+            config = json.loads(os.getenv(
+                'LOG_DICT',
+                None).strip())
+        except Exception as e:
+            print(
+                'Please confirm the env key LOG_DICT has a valid '
+                'JSON dictionary. Failed json.loads() parsing with '
+                '- using default config for '
+                'ex={}').format(
+                    e)
+        # try to parse the dict and log it that there was a failure
+
     elif log_dict:
         config = config
     # end of if passed in set in an environment variable
@@ -221,9 +231,7 @@ def setup_logging(
                 if splunk_handler_name == h and splunk_token:
                     found_splunk_handler = True
 
-        if os.getenv(
-                'SPLUNK_ENABLED',
-                '1').strip() == '1' and found_splunk_handler:
+        if found_splunk_handler:
             if splunk_token:
                 config['handlers'][splunk_handler_name]['token'] = \
                     splunk_token
@@ -349,9 +357,7 @@ def setup_logging(
                 ]
             }
         }
-        if os.getenv(
-                'SPLUNK_ENABLED',
-                '1').strip() == '1' and splunk_token:
+        if splunk_token:
             config['root']['handlers'].append(
                 '{}'.format(splunk_handler_name))
         logging.config.dictConfig(
@@ -368,10 +374,11 @@ def build_colorized_logger(
         log_config_path=None,
         handler_name='console',
         handlers_dict=None,
+        enable_splunk=True,
         splunk_user=None,
         splunk_password=None,
         splunk_address=None,
-        splunk_login_address=None,
+        splunk_api_address=None,
         splunk_index=None,
         splunk_token=None,
         splunk_handler_name='splunk',
@@ -385,21 +392,24 @@ def build_colorized_logger(
     :param log_config_path: path to log config file
     :param handler_name: handler name in the config
     :param handlers_dict: handlers dict
+    :param enable_splunk: Turn off splunk even if the env keys are set
+                          False by default - all processes that have the
+                          ``SPLUNK_*`` env keys will publish logs to splunk
     :param splunk_user: splunk username - defaults to environment variable:
                         SPLUNK_USER
     :param splunk_password: splunk password - defaults to
                             environment variable:
                             SPLUNK_PASSWORD
     :param splunk_address: splunk address - defaults to environment variable:
-                           SPLUNK_ADDRESS
-    :param splunk_login_address: splunk login address - defaults to
-                                 environment variable:
-                                 SPLUNK_LOGIN_ADDRESS
+                           SPLUNK_ADDRESS which is localhost:8088
+    :param splunk_api_address: splunk api address - defaults to
+                               environment variable:
+                               SPLUNK_API_ADDRESS which is localhost:8089
     :param splunk_index: splunk index - defaults to environment variable:
                          SPLUNK_INDEX
     :param splunk_token: splunk token - defaults to environment variable:
                          SPLUNK_TOKEN
-    :param splunk_hanlder: splunk log config handler name - defaults to :
+    :param splunk_handler_name: splunk log config handler name - defaults to :
                            SPLUNK_HANDLER_NAME
     :param splunk_verify: splunk verify - defaults to environment variable:
                           SPLUNK_VERIFY=<1|0>
@@ -421,15 +431,15 @@ def build_colorized_logger(
     use_splunk_address = os.getenv(
         'SPLUNK_ADDRESS',
         'localhost:8088')
-    use_splunk_index = os.getenv(
-        'SPLUNK_INDEX',
-        'antinex')
-    use_splunk_hec_address = os.getenv(
-        'SPLUNK_LOGIN_ADDRESS',
-        'https://localhost:8089')
+    use_splunk_api_address = os.getenv(
+        'SPLUNK_API_ADDRESS',
+        'localhost:8089')
     use_splunk_token = os.getenv(
         'SPLUNK_TOKEN',
         None)
+    use_splunk_index = os.getenv(
+        'SPLUNK_INDEX',
+        'antinex')
     use_handlers_dict = None
     use_handler_name = os.getenv(
         'LOG_HANDLER_NAME',
@@ -454,9 +464,15 @@ def build_colorized_logger(
         use_splunk_password = splunk_password
     if splunk_address:
         use_splunk_address = splunk_address
-    if splunk_login_address:
-        use_splunk_hec_address = 'https://{}'.format(
-            splunk_login_address)
+    if splunk_api_address:
+        if 'https:' in splunk_api_address:
+            use_splunk_api_address = splunk_api_address
+        else:
+            use_splunk_api_address = 'https://{}'.format(
+                splunk_api_address)
+    else:
+        use_splunk_api_address = 'https://{}'.format(
+            use_splunk_api_address)
     if splunk_index:
         use_splunk_index = splunk_index
     if splunk_token:
@@ -514,7 +530,11 @@ def build_colorized_logger(
         use_splunk_port = None
     # end of try/ex to parse splunk address
 
-    if use_splunk_user and use_splunk_password and use_splunk_address:
+    if enable_splunk and (
+            use_splunk_user
+            and use_splunk_password
+            and use_splunk_address
+            and use_splunk_api_address):
         try:
             if os.getenv(
                     'SPLUNK_TOKEN',
@@ -526,7 +546,7 @@ def build_colorized_logger(
                 use_splunk_token = get_token.get_token(
                     user=use_splunk_user,
                     password=use_splunk_password,
-                    url=use_splunk_hec_address,
+                    url=use_splunk_api_address,
                     verify=use_splunk_verify)
             if splunk_debug:
                 print((
@@ -540,17 +560,24 @@ def build_colorized_logger(
             print((
                 'Failed connecting to splunk address={} user={} '
                 'ex={}').format(
-                    use_splunk_hec_address,
+                    use_splunk_api_address,
                     splunk_user,
                     e))
             use_splunk_token = None
         # end of try/ex on splunk login
     # end of try to set the token to use
 
-    if use_splunk_token and splunk_debug:
-        print('Using splunk address={} token={}'.format(
-            use_splunk_address,
-            use_splunk_token))
+    if enable_splunk:
+        if use_splunk_token and splunk_debug:
+            print('Using splunk address={} token={}'.format(
+                use_splunk_address,
+                use_splunk_token))
+    else:
+        # turn off external keyword arguments (kwargs):
+        use_splunk_host = None
+        use_splunk_port = None
+        use_splunk_index = None
+        use_splunk_token = None
 
     setup_logging(
         default_level=log_level,
@@ -565,10 +592,7 @@ def build_colorized_logger(
         splunk_verify=use_splunk_verify,
         splunk_debug=splunk_debug)
 
-    if os.getenv(
-            'SPLUNK_ENABLED',
-            '1').strip() == '1':
-
+    if enable_splunk:
         default_fields = {
             'name': os.getenv(
                 'COMPONENT_NAME',

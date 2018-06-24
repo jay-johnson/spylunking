@@ -2,6 +2,36 @@
 
 """
 A tool for searching splunk with python - spylunking
+
+Examples
+--------
+
+Pull Logs with a Query on the Command Line
+==========================================
+
+::
+
+    sp -u trex -p 123321 -a splunk:8089 \
+        -q 'index="antinex" | head 10'
+
+Pull Logs with a Query on the Command Line
+==========================================
+
+Get CRITICAL logs
+=================
+
+::
+
+    sp -q 'index="antinex" AND levelname="CRITICAL"'
+
+Get First 10 ERROR logs
+=======================
+
+::
+
+    sp -q 'index="antinex" AND levelname="ERROR" AND head 10' \
+        -u trex -p 123321 -a splunk:8089
+
 """
 
 import sys
@@ -18,7 +48,8 @@ from spylunking.ppj import ppj
 
 log = build_colorized_logger(
     name='sp',
-    handler_name='simple')
+    handler_name='simple',
+    enable_splunk=False)
 
 """
 Additional optional argument values for build_colorized_logger
@@ -40,7 +71,7 @@ Additional optional argument values for build_colorized_logger
         'SPLUNK_PASSWORD',
         None)
     splunk_address=os.getenv(
-        'SPLUNK_ADDRESS',
+        'SPLUNK_API_ADDRESS',
         'localhost:8089')
     splunk_token=os.getenv(
         'SPLUNK_TOKEN',
@@ -55,80 +86,92 @@ def run_main():
     """
 
     parser = argparse.ArgumentParser(
-            description=(
-                'Search Splunk'))
+        description=(
+            'Search Splunk'))
     parser.add_argument(
-            '-u',
-            help='username',
-            required=False,
-            dest='user')
+        '-u',
+        help='username',
+        required=False,
+        dest='user')
     parser.add_argument(
-            '-p',
-            help='user password',
-            required=False,
-            dest='password')
+        '-p',
+        help='user password',
+        required=False,
+        dest='password')
     parser.add_argument(
-            '-f',
-            help='splunk-ready request in a json file',
-            required=False,
-            dest='datafile')
+        '-f',
+        help='splunk-ready request in a json file',
+        required=False,
+        dest='datafile')
     parser.add_argument(
-            '-i',
-            help='index to search',
-            required=False,
-            dest='index_name')
+        '-i',
+        help='index to search',
+        required=False,
+        dest='index_name')
     parser.add_argument(
-            '-a',
-            help='host address: <fqdn:port>',
-            required=False,
-            dest='address')
+        '-a',
+        help='host address: <fqdn:port>',
+        required=False,
+        dest='address')
     parser.add_argument(
-            '-e',
-            help='earliest_time minutes back',
-            required=False,
-            dest='earliest_time_minutes')
+        '-e',
+        help='earliest_time minutes back',
+        required=False,
+        dest='earliest_time_minutes')
     parser.add_argument(
-            '-l',
-            help='latest_time minutes back',
-            required=False,
-            dest='latest_time_minutes')
+        '-l',
+        help='latest_time minutes back',
+        required=False,
+        dest='latest_time_minutes')
     parser.add_argument(
-            '-v',
-            help='verify certs - disabled by default',
-            required=False,
-            dest='verify')
+        '-q',
+        '--queryargs',
+        nargs='*',
+        help=(
+            'query string for searching splunk: '
+            'search index="antinex" AND levelname="ERROR"'),
+        required=False,
+        dest='query_args')
     parser.add_argument(
-            '-s',
-            help='silent',
-            required=False,
-            dest='silent',
-            action='store_true')
+        '-j',
+        help='view as json dictionary logs',
+        required=False,
+        dest='json_view',
+        action='store_true')
+    parser.add_argument(
+        '-v',
+        help='verify certs - disabled by default',
+        required=False,
+        dest='verify',
+        action='store_true')
+    parser.add_argument(
+        '-s',
+        help='silent',
+        required=False,
+        dest='silent',
+        action='store_true')
     args = parser.parse_args()
 
     user = ev(
-        'API_USER',
+        'SPLUNK_USER',
         'user-not-set')
     password = ev(
-        'API_PASSWORD',
+        'SPLUNK_PASSWORD',
         'password-not-set')
     address = ev(
-        'API_ADDRESS',
+        'SPLUNK_API_ADDRESS',
         'localhost:8089')
-    host = ev(
-        'API_HOST',
-        'localhost')
-    port = int(ev(
-        'API_PORT',
-        '8089'))
     index_name = ev(
-        'API_INDEX',
+        'SPLUNK_INDEX',
         'antinex')
     verbose = bool(str(ev(
-        'API_VERBOSE',
+        'SPLUNK_VERBOSE',
         'true')).lower() == 'true')
     earliest_time_minutes = None
     latest_time_minutes = None
     verify = False
+    code_view = True
+    json_view = False
     datafile = None
 
     if args.user:
@@ -149,6 +192,18 @@ def run_main():
         latest_time_minutes = int(args.latest_time_minutes)
     if args.silent:
         verbose = False
+    if args.json_view:
+        json_view = True
+        code_view = False
+
+    default_search_query = 'index="{}" | head 10'.format(
+        index_name)
+    search_query = ev(
+        'SPLUNK_QUERY',
+        default_search_query)
+    if args.query_args:
+        search_query = ' '.join(
+            args.query_args)
 
     usage = ('Please run with -u <username> '
              '-p <password> '
@@ -231,8 +286,6 @@ def run_main():
                 '%Y-%m-%dT%H:%M:%S.000-00:00')
 
     # Step 2: Create a search job
-    search_query = 'index="{}" | head 10'.format(
-        index_name)
     if not search_query.startswith('search'):
         search_query = 'search {}'.format(
             search_query)
@@ -257,36 +310,113 @@ def run_main():
     if res['status'] == SUCCESS:
         result_dict = res['record']['results']
         for ridx, log_record in enumerate(result_dict):
-            rec = json.loads(log_record['_raw'])
-            if rec['levelname'] == 'INFO':
-                log.info((
+            org_rec = json.loads(log_record['_raw'])
+            if code_view:
+                rec = org_rec
+                comp_name = rec.get(
+                    'name',
+                    '')
+                logger_name = rec.get(
+                    'logger_name',
+                    '')
+                use_log_name = (
                     '{}').format(
-                        ppj(rec)))
-            elif rec['levelname'] == 'DEBUG':
-                log.debug((
-                    '{}').format(
-                        ppj(rec)))
-            elif rec['levelname'] == 'ERROR':
-                log.error((
-                    '{}').format(
-                        ppj(rec)))
-            elif rec['levelname'] == 'CRITICAL':
-                log.critical((
-                    '{}').format(
-                        ppj(rec)))
-            elif rec['levelname'] == 'WARN':
-                log.warn((
-                    '{}').format(
-                        ppj(rec)))
-            else:
-                log.debug((
-                    '{}').format(
-                        ppj(rec)))
+                    logger_name)
+                if comp_name and logger_name:
+                    use_log_name = '{}.{}'.format(
+                        comp_name,
+                        logger_name)
+                elif comp_name:
+                    use_log_name = '{}'.format(
+                        comp_name)
+
+                prefix_log = (
+                    '{} {} -').format(
+                        use_log_name,
+                        rec.get(
+                            'asctime',
+                            ''))
+                suffix_log = (
+                    'dc={} env={} '
+                    'source={} line={} ex={}').format(
+                        rec.get(
+                            'dc',
+                            ''),
+                        rec.get(
+                            'env',
+                            ''),
+                        rec.get(
+                            'path',
+                            ''),
+                        rec.get(
+                            'lineno',
+                            ''),
+                        rec.get(
+                            'exc',
+                            ''))
+                msg = (
+                    '{} {} {}').format(
+                        prefix_log,
+                        rec.get(
+                            'message',
+                            ''),
+                        suffix_log)
+
+                if rec['levelname'] == 'INFO':
+                    log.info((
+                        '{}').format(
+                            msg))
+                elif rec['levelname'] == 'DEBUG':
+                    log.debug((
+                        '{}').format(
+                            msg))
+                elif rec['levelname'] == 'ERROR':
+                    log.error((
+                        '{}').format(
+                            msg))
+                elif rec['levelname'] == 'CRITICAL':
+                    log.critical((
+                        '{}').format(
+                            msg))
+                elif rec['levelname'] == 'WARN':
+                    log.warn((
+                        '{}').format(
+                            msg))
+                else:
+                    log.debug((
+                        '{}').format(
+                            msg))
+            elif json_view:
+                rec = org_rec
+                if rec['levelname'] == 'INFO':
+                    log.info((
+                        '{}').format(
+                            ppj(rec)))
+                elif rec['levelname'] == 'DEBUG':
+                    log.debug((
+                        '{}').format(
+                            ppj(rec)))
+                elif rec['levelname'] == 'ERROR':
+                    log.error((
+                        '{}').format(
+                            ppj(rec)))
+                elif rec['levelname'] == 'CRITICAL':
+                    log.critical((
+                        '{}').format(
+                            ppj(rec)))
+                elif rec['levelname'] == 'WARN':
+                    log.warn((
+                        '{}').format(
+                            ppj(rec)))
+                else:
+                    log.debug((
+                        '{}').format(
+                            ppj(rec)))
         # end of finding responses
 
         if len(result_dict) == 0:
             log.info((
-                "No matches for search={}").format(
+                'No matches for search={}').format(
                     ppj(search_data)))
     else:
         log.error((
