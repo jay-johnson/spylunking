@@ -6,6 +6,17 @@ A tool for searching splunk with python - spylunking
 Examples
 --------
 
+Please use these environment variables to publish logs and run searches
+with a local or remote splunk server:
+
+::
+
+    export SPLUNK_ADDRESS="splunkenterprise:8088"
+    export SPLUNK_API_ADDRESS="splunkenterprise:8089"
+    export SPLUNK_PASSWORD="123321"
+    export SPLUNK_USER="trex"
+    export SPLUNK_TOKEN="<Optional pre-existing Splunk token>"
+
 Pull Logs with a Query on the Command Line
 ==========================================
 
