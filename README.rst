@@ -63,7 +63,7 @@ password: **123321**
     get_splunk_token.py
     955324da-742b-43d4-9746-bcbedf6ae7f4
 
-Please wait a few while the container is getting ready. You may see output like this when the ``splunk`` container is not ready yet or stops running:
+Please wait at least 30 seconds while the container is getting ready. You may see output like this when the ``splunk`` container is not ready yet or stops running:
 
 ::
 
@@ -99,16 +99,16 @@ Use the command line tool: **sp** to search for recent logs.
 
         sp
 
-Which will log something like:
+    Which will log something like:
 
-::
+    ::
 
-    sp - INFO - creating client user=trex address=splunkenterprise:8089
-    sp - INFO - connecting trex@splunkenterprise:8089
-    sp - INFO - No matches for search={
-        "search": "search index=\"antinex\" | head 10"
-    }
-    sp - INFO - done
+        sp - INFO - creating client user=trex address=splunkenterprise:8089
+        sp - INFO - connecting trex@splunkenterprise:8089
+        sp - INFO - No matches for search={
+            "search": "search index=\"antinex\" | head 10"
+        }
+        sp - INFO - done
 
 Write Splunk Logs
 -----------------
