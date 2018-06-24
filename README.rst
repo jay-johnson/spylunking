@@ -82,9 +82,22 @@ Get Splunk Logs from the Command Line Tool
 
 Use the command line tool: **sp** to search for recent logs.
 
-::
+#.  Set environment variables:
 
-    sp
+    ::
+
+        export SPLUNK_ADDRESS="splunkenterprise:8088"
+        export SPLUNK_API_ADDRESS="splunkenterprise:8089"
+        export SPLUNK_PASSWORD="123321"
+        export SPLUNK_USER="trex"
+
+    .. note:: The remainder of this guide was recorded by running the splunk container on a remote vm and then setting the environment variables for the search tool ``sp`` and spylunking logger to work. If you are running the container locally, either add ``splunkenterprise`` to ``/etc/hosts`` at the end of the ``127.0.0.1`` line or export these environment variables to work with the local splunk container: ``export SPLUNK_ADDRESS:localhost:8088`` and ``export SPLUNK_API_ADDRESS=localhost:8089``.
+
+#.  Run the tool:
+
+    ::
+
+        sp
 
 Which will log something like:
 
