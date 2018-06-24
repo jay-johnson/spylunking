@@ -6,11 +6,11 @@
 Spylunking - Splunk + Python Logging
 ------------------------------------
 
-This documentation is for the `Spylunking project <https://github.com/jay-johnson/spylunking>`__. This project is a guide for showing how to build a python logger to publish logs to splunk over the HEC interface. It also includes demonstrations, debugging and integration tools.
+Drill down into your logs with an integrated, colorized logger and search tools set up with the included Splunk docker sandbox.
 
-This repository is a demo on how to run a local docker splunk container and hook up to the Splunk HEC REST API during the logger's initialization. It supports using previously-shared tokens or logging in using user and password as environment variables.
+This documentation is for the `Spylunking project <https://github.com/jay-johnson/spylunking>`__. This repository is an example on using the Splunk HEC REST API running in a docker container with a python logger. It supports using previously-shared Splunk tokens or logging in using user and password as arguments or environment variables.
 
-Here's what your logs can look like in Splunk's web app:
+This project holds a Splunk-ready python logger with search tools for quickly finding logs published to the included Splunk docker sandbox. Here's what your logs can look like using spylunking with the included, docker Splunk web app:
 
 .. image:: https://imgur.com/SUdcyWf.png
     :alt: Splunk web app python logs from the Spylunking test app
