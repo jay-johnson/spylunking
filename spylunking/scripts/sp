@@ -50,21 +50,18 @@ import json
 import argparse
 import datetime
 from spylunking.log.setup_logging import \
-    build_colorized_logger
+    simple_logger
 import spylunking.search as sp
 from spylunking.ev import ev
 from spylunking.consts import SUCCESS
 from spylunking.ppj import ppj
 
 
-log = build_colorized_logger(
-    name='sp',
-    handler_name='simple',
-    enable_splunk=False)
+log = simple_logger()
 
 """
-Additional optional argument values for build_colorized_logger
-==============================================================
+Additional optional argument values for simple_logger
+=====================================================
 
 ::
 
@@ -126,12 +123,12 @@ def run_main():
         dest='address')
     parser.add_argument(
         '-e',
-        help='earliest_time minutes back',
+        help='(Optional) earliest_time minutes back',
         required=False,
         dest='earliest_time_minutes')
     parser.add_argument(
         '-l',
-        help='latest_time minutes back',
+        help='(Optional) latest_time minutes back',
         required=False,
         dest='latest_time_minutes')
     parser.add_argument(
@@ -145,13 +142,19 @@ def run_main():
         dest='query_args')
     parser.add_argument(
         '-j',
-        help='view as json dictionary logs',
+        help='(Optional) view as json dictionary logs',
         required=False,
         dest='json_view',
         action='store_true')
     parser.add_argument(
+        '-m',
+        help='(Optional) verbose message when getting logs',
+        required=False,
+        dest='message_details',
+        action='store_true')
+    parser.add_argument(
         '-v',
-        help='verify certs - disabled by default',
+        help='(Optional) verify certs - disabled by default',
         required=False,
         dest='verify',
         action='store_true')
@@ -178,6 +181,9 @@ def run_main():
     verbose = bool(str(ev(
         'SPLUNK_VERBOSE',
         'true')).lower() == 'true')
+    show_message_details = bool(str(ev(
+        'MESSAGE_DETAILS',
+        'false')).lower() == 'true')
     earliest_time_minutes = None
     latest_time_minutes = None
     verify = False
@@ -203,6 +209,8 @@ def run_main():
         latest_time_minutes = int(args.latest_time_minutes)
     if args.silent:
         verbose = False
+    if args.message_details:
+        show_message_details = args.message_details
     if args.json_view:
         json_view = True
         code_view = False
@@ -351,38 +359,52 @@ def run_main():
                 use_log_name = (
                     '{}').format(
                     logger_name)
-                if comp_name and logger_name:
-                    use_log_name = '{}.{}'.format(
-                        comp_name,
-                        logger_name)
-                elif comp_name:
+                if logger_name:
                     use_log_name = '{}'.format(
-                        comp_name)
+                        logger_name)
+                else:
+                    if comp_name:
+                        use_log_name = '{}'.format(
+                            comp_name)
 
                 prefix_log = (
-                    '{} {} -').format(
-                        use_log_name,
+                    '{} {} - {} -').format(
                         rec.get(
                             'asctime',
+                            ''),
+                        use_log_name,
+                        rec.get(
+                            'levelname',
                             ''))
-                suffix_log = (
-                    'dc={} env={} '
-                    'source={} line={} ex={}').format(
-                        rec.get(
-                            'dc',
-                            ''),
-                        rec.get(
-                            'env',
-                            ''),
-                        rec.get(
-                            'path',
-                            ''),
-                        rec.get(
-                            'lineno',
-                            ''),
-                        rec.get(
-                            'exc',
-                            ''))
+
+                suffix_log = ''
+                if rec.get(
+                        'exc',
+                        ''):
+                    suffix_log = (
+                        '{} exc={}').format(
+                            suffix_log,
+                            rec.get(
+                                'exc',
+                                ''))
+
+                if show_message_details:
+                    suffix_log = (
+                        'dc={} env={} '
+                        'source={} line={}').format(
+                            rec.get(
+                                'dc',
+                                ''),
+                            rec.get(
+                                'env',
+                                ''),
+                            rec.get(
+                                'path',
+                                ''),
+                            rec.get(
+                                'lineno',
+                                ''))
+
                 msg = (
                     '{} {} {}').format(
                         prefix_log,

@@ -222,6 +222,17 @@ def setup_logging(
                 if os.path.exists(rels_path):
                     with open(rels_path, 'rt') as f:
                         config = json.load(f)
+                else:
+                    repo_config = (
+                        '/opt/spylunking/spylunking/log/'
+                        'shared-logging.json')
+                    if os.path.exists(repo_config):
+                        if splunk_debug:
+                            print(
+                                'checking repo_config={}'.format(
+                                    repo_config))
+                        with open(repo_config, 'rt') as f:
+                            config = json.load(f)
         # end of finding a config dictionary
     # end of trying to find a config on disk
 
@@ -309,11 +320,17 @@ def setup_logging(
                         '%(log_color)s%(asctime)s - %(name)s - '
                         '%(levelname)s - %(message)s%(reset)s')
                 },
-                'no_dates_colors': {
+                'no_date_colors': {
                     '()': 'colorlog.ColoredFormatter',
                     'format': (
                         '%(log_color)s%(name)s - %(levelname)s '
                         '- %(message)s%(reset)s')
+                },
+                'simple': {
+                    '()': 'colorlog.ColoredFormatter',
+                    'format': (
+                        '%(log_color)s'
+                        '%(message)s%(reset)s')
                 },
                 '{}'.format(splunk_handler_name): {
                     '()': 'spylunking.log.setup_logging.SplunkFormatter',
@@ -329,10 +346,16 @@ def setup_logging(
                     'formatter': 'colors',
                     'stream': 'ext://sys.stdout'
                 },
+                'no_date_colors': {
+                    'class': 'logging.StreamHandler',
+                    'level': 'INFO',
+                    'formatter': 'no_date_colors',
+                    'stream': 'ext://sys.stdout'
+                },
                 'simple': {
                     'class': 'logging.StreamHandler',
                     'level': 'INFO',
-                    'formatter': 'no_dates_colors',
+                    'formatter': 'simple',
                     'stream': 'ext://sys.stdout'
                 },
                 '{}'.format(splunk_handler_name): {
@@ -397,6 +420,9 @@ def build_colorized_logger(
         splunk_debug=False):
     """build_colorized_logger
 
+    Build a colorized logger using function arguments and environment
+    variables.
+
     :param name: name that shows in the logger
     :param config: name of the config file
     :param log_level: level to log
@@ -404,7 +430,7 @@ def build_colorized_logger(
     :param handler_name: handler name in the config
     :param handlers_dict: handlers dict
     :param enable_splunk: Turn off splunk even if the env keys are set
-                          False by default - all processes that have the
+                          True by default - all processes that have the
                           ``SPLUNK_*`` env keys will publish logs to splunk
     :param splunk_user: splunk username - defaults to environment variable:
                         SPLUNK_USER
@@ -525,7 +551,7 @@ def build_colorized_logger(
                     config)
             if not os.path.exists(use_config):
                 use_config = ('./spylunking/log/{}').format(
-                    'logging.json')
+                    'shared-logging.json')
     # find the log processing
 
     try:
@@ -623,3 +649,220 @@ def build_colorized_logger(
 
     return logging.getLogger(name)
 # end of build_colorized_logger
+
+
+def console_logger(
+        name='cl',
+        config='shared-logging.json',
+        log_level=logging.INFO,
+        log_config_path=None,
+        handler_name='console',
+        handlers_dict=None,
+        enable_splunk=False,
+        splunk_user=None,
+        splunk_password=None,
+        splunk_address=None,
+        splunk_api_address=None,
+        splunk_index=None,
+        splunk_token=None,
+        splunk_handler_name=None,
+        splunk_verify=None,
+        splunk_debug=False):
+    """console_logger
+
+    Build the full console logger
+
+    :param name: name that shows in the logger
+    :param config: name of the config file
+    :param log_level: level to log
+    :param log_config_path: path to log config file
+    :param handler_name: handler name in the config
+    :param handlers_dict: handlers dict
+    :param enable_splunk: Turn off splunk even if the env keys are set
+                          False by default - all processes that have the
+                          ``SPLUNK_*`` env keys will publish logs to splunk
+    :param splunk_user: splunk username - defaults to environment variable:
+                        SPLUNK_USER
+    :param splunk_password: splunk password - defaults to
+                            environment variable:
+                            SPLUNK_PASSWORD
+    :param splunk_address: splunk address - defaults to environment variable:
+                           SPLUNK_ADDRESS which is localhost:8088
+    :param splunk_api_address: splunk api address - defaults to
+                               environment variable:
+                               SPLUNK_API_ADDRESS which is localhost:8089
+    :param splunk_index: splunk index - defaults to environment variable:
+                         SPLUNK_INDEX
+    :param splunk_token: splunk token - defaults to environment variable:
+                         SPLUNK_TOKEN
+    :param splunk_handler_name: splunk log config handler name - defaults to :
+                           SPLUNK_HANDLER_NAME
+    :param splunk_verify: splunk verify - defaults to environment variable:
+                          SPLUNK_VERIFY=<1|0>
+    :param splunk_debug: print out the connection attempt for debugging
+                         Please Avoid on production...
+    """
+
+    return build_colorized_logger(
+        name=name,
+        config=config,
+        log_level=log_level,
+        log_config_path=log_config_path,
+        handler_name=handler_name,
+        handlers_dict=handlers_dict,
+        enable_splunk=enable_splunk,
+        splunk_user=splunk_user,
+        splunk_password=splunk_password,
+        splunk_address=splunk_address,
+        splunk_api_address=splunk_api_address,
+        splunk_index=splunk_index,
+        splunk_token=splunk_token,
+        splunk_handler_name=splunk_handler_name,
+        splunk_verify=splunk_verify,
+        splunk_debug=splunk_debug)
+# end of console_logger
+
+
+def no_date_colors_logger(
+        name='nd',
+        config='shared-logging.json',
+        log_level=logging.INFO,
+        log_config_path=None,
+        handler_name='no_date_colors',
+        handlers_dict=None,
+        enable_splunk=False,
+        splunk_user=None,
+        splunk_password=None,
+        splunk_address=None,
+        splunk_api_address=None,
+        splunk_index=None,
+        splunk_token=None,
+        splunk_handler_name=None,
+        splunk_verify=None,
+        splunk_debug=False):
+    """no_date_colors_logger
+
+    Build a colorized logger without dates
+
+    :param name: name that shows in the logger
+    :param config: name of the config file
+    :param log_level: level to log
+    :param log_config_path: path to log config file
+    :param handler_name: handler name in the config
+    :param handlers_dict: handlers dict
+    :param enable_splunk: Turn off splunk even if the env keys are set
+                          False by default - all processes that have the
+                          ``SPLUNK_*`` env keys will publish logs to splunk
+    :param splunk_user: splunk username - defaults to environment variable:
+                        SPLUNK_USER
+    :param splunk_password: splunk password - defaults to
+                            environment variable:
+                            SPLUNK_PASSWORD
+    :param splunk_address: splunk address - defaults to environment variable:
+                           SPLUNK_ADDRESS which is localhost:8088
+    :param splunk_api_address: splunk api address - defaults to
+                               environment variable:
+                               SPLUNK_API_ADDRESS which is localhost:8089
+    :param splunk_index: splunk index - defaults to environment variable:
+                         SPLUNK_INDEX
+    :param splunk_token: splunk token - defaults to environment variable:
+                         SPLUNK_TOKEN
+    :param splunk_handler_name: splunk log config handler name - defaults to :
+                           SPLUNK_HANDLER_NAME
+    :param splunk_verify: splunk verify - defaults to environment variable:
+                          SPLUNK_VERIFY=<1|0>
+    :param splunk_debug: print out the connection attempt for debugging
+                         Please Avoid on production...
+    """
+
+    return build_colorized_logger(
+        name=name,
+        config=config,
+        log_level=log_level,
+        log_config_path=log_config_path,
+        handler_name=handler_name,
+        handlers_dict=handlers_dict,
+        enable_splunk=enable_splunk,
+        splunk_user=splunk_user,
+        splunk_password=splunk_password,
+        splunk_address=splunk_address,
+        splunk_api_address=splunk_api_address,
+        splunk_index=splunk_index,
+        splunk_token=splunk_token,
+        splunk_handler_name=splunk_handler_name,
+        splunk_verify=splunk_verify,
+        splunk_debug=splunk_debug)
+# end of no_date_colors_logger
+
+
+def simple_logger(
+        name='',
+        config='shared-logging.json',
+        log_level=logging.INFO,
+        log_config_path=None,
+        handler_name='simple',
+        handlers_dict=None,
+        enable_splunk=False,
+        splunk_user=None,
+        splunk_password=None,
+        splunk_address=None,
+        splunk_api_address=None,
+        splunk_index=None,
+        splunk_token=None,
+        splunk_handler_name=None,
+        splunk_verify=None,
+        splunk_debug=False):
+    """simple_logger
+
+    Build a colorized logger for just the message - Used by
+    command line tools.
+
+    :param name: name that shows in the logger
+    :param config: name of the config file
+    :param log_level: level to log
+    :param log_config_path: path to log config file
+    :param handler_name: handler name in the config
+    :param handlers_dict: handlers dict
+    :param enable_splunk: Turn off splunk even if the env keys are set
+                          False by default - all processes that have the
+                          ``SPLUNK_*`` env keys will publish logs to splunk
+    :param splunk_user: splunk username - defaults to environment variable:
+                        SPLUNK_USER
+    :param splunk_password: splunk password - defaults to
+                            environment variable:
+                            SPLUNK_PASSWORD
+    :param splunk_address: splunk address - defaults to environment variable:
+                           SPLUNK_ADDRESS which is localhost:8088
+    :param splunk_api_address: splunk api address - defaults to
+                               environment variable:
+                               SPLUNK_API_ADDRESS which is localhost:8089
+    :param splunk_index: splunk index - defaults to environment variable:
+                         SPLUNK_INDEX
+    :param splunk_token: splunk token - defaults to environment variable:
+                         SPLUNK_TOKEN
+    :param splunk_handler_name: splunk log config handler name - defaults to :
+                           SPLUNK_HANDLER_NAME
+    :param splunk_verify: splunk verify - defaults to environment variable:
+                          SPLUNK_VERIFY=<1|0>
+    :param splunk_debug: print out the connection attempt for debugging
+                         Please Avoid on production...
+    """
+
+    return build_colorized_logger(
+        name=name,
+        config=config,
+        log_level=log_level,
+        log_config_path=log_config_path,
+        handler_name=handler_name,
+        handlers_dict=handlers_dict,
+        enable_splunk=enable_splunk,
+        splunk_user=splunk_user,
+        splunk_password=splunk_password,
+        splunk_address=splunk_address,
+        splunk_api_address=splunk_api_address,
+        splunk_index=splunk_index,
+        splunk_token=splunk_token,
+        splunk_handler_name=splunk_handler_name,
+        splunk_verify=splunk_verify,
+        splunk_debug=splunk_debug)
+# end of simple_logger
