@@ -48,6 +48,17 @@ Build a colorized logger that preserves the parent application name and log leve
     log.info('no date with colors logger example')
     app-name - INFO - no date with colors logger example
 
+Test Logger
+-----------
+
+The test logger is for unittests and does not publish to Splunk.
+
+::
+
+    from spylunking.log.setup_logging import test_logger
+    log = test_logger(name='unittest logger')
+    log.info('unittest log line')
+    2018-06-25 16:01:50,118 - using-a-colorized-logger - INFO - colorized logger example
 
 Console Logger
 --------------
@@ -59,7 +70,7 @@ The console logger is the same as the ``build_colorized_logger`` which can be cr
     from spylunking.log.setup_logging import build_colorized_logger
     log = build_colorized_logger(name='using-a-colorized-logger')
     log.info('colorized logger example')
-    2018-06-25 16:01:50,118 - using-a-colorized-logger - INFO - colorized logger example
+    2018-06-25 16:47:54,053 - unittest logger - INFO - unittest log line
 
 Full Console Logger with Splunk
 -------------------------------

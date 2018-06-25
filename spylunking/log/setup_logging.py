@@ -866,3 +866,75 @@ def simple_logger(
         splunk_verify=splunk_verify,
         splunk_debug=splunk_debug)
 # end of simple_logger
+
+
+def test_logger(
+        name='test',
+        config='shared-logging.json',
+        log_level=logging.INFO,
+        log_config_path=None,
+        handler_name='console',
+        handlers_dict=None,
+        enable_splunk=False,
+        splunk_user=None,
+        splunk_password=None,
+        splunk_address=None,
+        splunk_api_address=None,
+        splunk_index=None,
+        splunk_token=None,
+        splunk_handler_name=None,
+        splunk_verify=None,
+        splunk_debug=False):
+    """test_logger
+
+    Build the test logger
+
+    :param name: name that shows in the logger
+    :param config: name of the config file
+    :param log_level: level to log
+    :param log_config_path: path to log config file
+    :param handler_name: handler name in the config
+    :param handlers_dict: handlers dict
+    :param enable_splunk: Turn off splunk even if the env keys are set
+                          False by default - all processes that have the
+                          ``SPLUNK_*`` env keys will publish logs to splunk
+    :param splunk_user: splunk username - defaults to environment variable:
+                        SPLUNK_USER
+    :param splunk_password: splunk password - defaults to
+                            environment variable:
+                            SPLUNK_PASSWORD
+    :param splunk_address: splunk address - defaults to environment variable:
+                           SPLUNK_ADDRESS which is localhost:8088
+    :param splunk_api_address: splunk api address - defaults to
+                               environment variable:
+                               SPLUNK_API_ADDRESS which is localhost:8089
+    :param splunk_index: splunk index - defaults to environment variable:
+                         SPLUNK_INDEX
+    :param splunk_token: splunk token - defaults to environment variable:
+                         SPLUNK_TOKEN
+    :param splunk_handler_name: splunk log config handler name - defaults to :
+                           SPLUNK_HANDLER_NAME
+    :param splunk_verify: splunk verify - defaults to environment variable:
+                          SPLUNK_VERIFY=<1|0>
+    :param splunk_debug: print out the connection attempt for debugging
+                         Please Avoid on production...
+    """
+
+    return build_colorized_logger(
+        name=name,
+        config=config,
+        log_level=log_level,
+        log_config_path=log_config_path,
+        handler_name=handler_name,
+        handlers_dict=handlers_dict,
+        enable_splunk=enable_splunk,
+        splunk_user=splunk_user,
+        splunk_password=splunk_password,
+        splunk_address=splunk_address,
+        splunk_api_address=splunk_api_address,
+        splunk_index=splunk_index,
+        splunk_token=splunk_token,
+        splunk_handler_name=splunk_handler_name,
+        splunk_verify=splunk_verify,
+        splunk_debug=splunk_debug)
+# end of test_logger
