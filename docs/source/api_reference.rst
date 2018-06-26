@@ -72,6 +72,129 @@ The console logger is the same as the ``build_colorized_logger`` which can be cr
     log.info('colorized logger example')
     2018-06-25 16:47:54,053 - unittest logger - INFO - unittest log line
 
+Define Custom Fields for Splunk
+-------------------------------
+
+You can export a custom JSON dictionary to send as JSON fields for helping drill down on log lines using this environment variable.
+
+::
+
+    export LOG_FIELDS_DICT='{"name":"hello-world","dc":"k8-splunk","env":"development"}'
+
+Or you can export the following environment variables if you just want a couple set in the logs:
+
+::
+
+    export LOG_NAME=<application log name>
+    export DEPLOY_CONFIG=<PaaS/CaaS deployment config name>
+    export ENV_NAME<deployed environment name>
+
+Log some new test messages to Splunk:
+
+::
+
+    test_logging.py 
+    2018-06-25 20:48:51,367 - testingsplunk - INFO - testing INFO message_id=0c5e2a2c-9553-4c8a-8fff-8d77de2be78a
+    2018-06-25 20:48:51,368 - testingsplunk - ERROR - testing ERROR message_id=0dc1086d-4fe4-4062-9882-e822f9256d6f
+    2018-06-25 20:48:51,368 - testingsplunk - CRITICAL - testing CRITICAL message_id=0c0f56f2-e87f-41a0-babb-b71e2b9d5d5a
+    2018-06-25 20:48:51,368 - testingsplunk - WARNING - testing WARN message_id=59b099eb-8c0d-40d0-9d3a-7dfa13fefc90
+    2018-06-25 20:48:51,368 - testingsplunk - ERROR - Testing EXCEPTION with ex=Throw for testing exceptions message_id=70fc422d-d33b-4a9e-bb51-ed86aa0a02f9
+
+Once published, you can search for these new logs using those new JSON fields with the ``sp`` search tool. Here is an example of searching for the logs with the application log name ``hello-world``:
+
+::
+
+    sp -q 'index="antinex" AND name=hello-world'
+    creating client user=trex address=splunk:8089
+    connecting trex@splunk:8089
+    2018-06-25 20:48:51,368 testingsplunk - ERROR - Testing EXCEPTION with ex=Throw for testing exceptions message_id=70fc422d-d33b-4a9e-bb51-ed86aa0a02f9 
+    2018-06-25 20:48:51,368 testingsplunk - CRITICAL - testing CRITICAL message_id=0c0f56f2-e87f-41a0-babb-b71e2b9d5d5a 
+    2018-06-25 20:48:51,368 testingsplunk - ERROR - testing ERROR message_id=0dc1086d-4fe4-4062-9882-e822f9256d6f 
+    2018-06-25 20:48:51,367 testingsplunk - INFO - testing INFO message_id=0c5e2a2c-9553-4c8a-8fff-8d77de2be78a 
+    done
+
+And you can view log the full JSON dictionaries using the ``-j`` argument on the ``sp`` command:
+
+::
+
+    sp -q 'index="antinex" AND name=hello-world' -j
+    creating client user=trex address=splunk:8089
+    connecting trex@splunk:8089
+    {
+        "asctime": "2018-06-25 20:48:51,368",
+        "custom_key": "custom value",
+        "dc": "k8-deploy",
+        "env": "development",
+        "exc": null,
+        "filename": "test_logging.py",
+        "levelname": "ERROR",
+        "lineno": 41,
+        "logger_name": "testingsplunk",
+        "message": "Testing EXCEPTION with ex=Throw for testing exceptions message_id=70fc422d-d33b-4a9e-bb51-ed86aa0a02f9",
+        "name": "hello-world",
+        "path": "/opt/spylunking/spylunking/scripts/test_logging.py",
+        "tags": [],
+        "timestamp": 1529984931.3688767
+    }
+    {
+        "asctime": "2018-06-25 20:48:51,368",
+        "custom_key": "custom value",
+        "dc": "k8-deploy",
+        "env": "development",
+        "exc": null,
+        "filename": "test_logging.py",
+        "levelname": "CRITICAL",
+        "lineno": 31,
+        "logger_name": "testingsplunk",
+        "message": "testing CRITICAL message_id=0c0f56f2-e87f-41a0-babb-b71e2b9d5d5a",
+        "name": "hello-world",
+        "path": "/opt/spylunking/spylunking/scripts/test_logging.py",
+        "tags": [],
+        "timestamp": 1529984931.3684626
+    }
+    {
+        "asctime": "2018-06-25 20:48:51,368",
+        "custom_key": "custom value",
+        "dc": "k8-deploy",
+        "env": "development",
+        "exc": null,
+        "filename": "test_logging.py",
+        "levelname": "ERROR",
+        "lineno": 29,
+        "logger_name": "testingsplunk",
+        "message": "testing ERROR message_id=0dc1086d-4fe4-4062-9882-e822f9256d6f",
+        "name": "hello-world",
+        "path": "/opt/spylunking/spylunking/scripts/test_logging.py",
+        "tags": [],
+        "timestamp": 1529984931.3682773
+    }
+    {
+        "asctime": "2018-06-25 20:48:51,367",
+        "custom_key": "custom value",
+        "dc": "k8-deploy",
+        "env": "development",
+        "exc": null,
+        "filename": "test_logging.py",
+        "levelname": "INFO",
+        "lineno": 27,
+        "logger_name": "testingsplunk",
+        "message": "testing INFO message_id=0c5e2a2c-9553-4c8a-8fff-8d77de2be78a",
+        "name": "hello-world",
+        "path": "/opt/spylunking/spylunking/scripts/test_logging.py",
+        "tags": [],
+        "timestamp": 1529984931.3679354
+    }
+    done
+
+Debug the Logger
+----------------
+
+Export this variable before creating a logger.
+
+::
+
+    export SPLUNK_DEBUG=1
+
 Full Console Logger with Splunk
 -------------------------------
 

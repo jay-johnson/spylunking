@@ -97,9 +97,6 @@ class SplunkFormatter(jsonlogger.JsonFormatter):
             'timestamp': record.created,
             'path': record.pathname,
             'message': record.getMessage(),
-            'custom_key': 'custom value',
-            'tags': [
-            ],
             'exc': None,
             'logger_name': record.name
         }
@@ -487,6 +484,9 @@ def build_colorized_logger(
     use_splunk_verify = bool(os.getenv(
         'SPLUNK_VERIFY',
         '0').strip() == '1')
+    use_splunk_debug = bool(os.getenv(
+        'SPLUNK_DEBUG',
+        '0').strip() == '1')
     use_splunk_host = None
     use_splunk_port = None
     if log_config_path:
@@ -518,6 +518,8 @@ def build_colorized_logger(
         use_splunk_handler_name = splunk_handler_name
     if splunk_verify:
         use_splunk_verify = splunk_verify
+    if splunk_debug:
+        use_splunk_debug = splunk_debug
 
     override_config = os.getenv(
         'SHARED_LOG_CFG',
@@ -585,7 +587,7 @@ def build_colorized_logger(
                     password=use_splunk_password,
                     url=use_splunk_api_address,
                     verify=use_splunk_verify)
-            if splunk_debug:
+            if use_splunk_debug:
                 print((
                     'connected to splunk address={} user={} '
                     'password={} token={}').format(
@@ -605,7 +607,7 @@ def build_colorized_logger(
     # end of try to set the token to use
 
     if enable_splunk:
-        if use_splunk_token and splunk_debug:
+        if use_splunk_token and use_splunk_debug:
             print('Using splunk address={} token={}'.format(
                 use_splunk_address,
                 use_splunk_token))
@@ -627,12 +629,12 @@ def build_colorized_logger(
         splunk_token=use_splunk_token,
         splunk_handler_name=use_splunk_handler_name,
         splunk_verify=use_splunk_verify,
-        splunk_debug=splunk_debug)
+        splunk_debug=use_splunk_debug)
 
     if enable_splunk:
         default_fields = {
             'name': os.getenv(
-                'COMPONENT_NAME',
+                'LOG_NAME',
                 ''),
             'dc': os.getenv(
                 'DEPLOY_CONFIG',
@@ -642,11 +644,57 @@ def build_colorized_logger(
                 'DEV')
         }
 
-        for i in logging.root.handlers:
-            if splunk_handler_name in logging.root.handlers:
-                i.set_fields(
-                    fields_to_add=default_fields)
-
+        last_step = ''
+        try:
+            last_step = (
+                'checking if LOG_FIELDS_DICT '
+                'has valid JSON using json.loads({})').format(
+                    os.getenv(
+                        'LOG_FIELDS_DICT',
+                        None))
+            if use_splunk_debug:
+                print(last_step)
+            if os.getenv(
+                    'LOG_FIELDS_DICT',
+                    None):
+                default_fields = json.loads(
+                    os.getenv(
+                        'LOG_FIELDS_DICT',
+                        default_fields))
+            last_step = (
+                'looking for splunk_handler={}').format(
+                    splunk_handler_name)
+            if use_splunk_debug:
+                print(last_step)
+            for i in logging.root.handlers:
+                handler_class_name = i.__class__.__name__.lower()
+                last_step = (
+                    'checking splunk_handler_name={} '
+                    'in handler_name={} or '
+                    'hasattr({}.formatter, set_fields)').format(
+                        handler_class_name,
+                        splunk_handler_name,
+                        handler_class_name)
+                if use_splunk_debug:
+                    print(last_step)
+                if (splunk_handler_name in handler_class_name
+                        or hasattr(i.formatter, 'set_fields')):
+                    last_step = (
+                        'assigning fields={} to formatter={}').format(
+                            default_fields,
+                            i.formatter.__class__.__name__)
+                    if use_splunk_debug:
+                        print(last_step)
+                    i.formatter.set_fields(
+                        new_fields=default_fields)
+        except Exception as e:
+            print((
+                'Failed assigning splunk_handler_name={} '
+                'during last_step={} with ex={}').format(
+                    splunk_handler_name,
+                    last_step,
+                    e))
+        # end of try/ex for setting the formatter
     return logging.getLogger(name)
 # end of build_colorized_logger
 
