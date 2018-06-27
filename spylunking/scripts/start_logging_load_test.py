@@ -61,12 +61,6 @@ def run_main():
                     (checkpoint - last_checkpoint).total_seconds())
                 total_exec_time = float(
                     (checkpoint - start_time).total_seconds())
-                # print('\n')
-                # print(' - start_time={}'.format(start_time))
-                # print(' - end_time={}'.format(checkpoint))
-                # print(' ---------------------------')
-                # print(' - total_time: {} seconds'.format(running_time))
-                # print(' - total_logs: {}'.format(num_logs))
                 print(' - log={} cycle={}s rate: {} time={}s'.format(
                     num_logs,
                     running_time,
