@@ -28,6 +28,14 @@ Publish Logs to Splunk
 .. automodule:: spylunking.scripts.test_logging
    :members: run_main
 
+Load Test Splunk
+================
+
+Splunk client load tester for determining how many messages can this client send over splunk. By default, this tester sends a batch of 1000 messages and then sleeps to let the client catch up.
+
+.. automodule:: spylunking.scripts.start_logging_load_test
+   :members: run_main
+
 Get a Splunk User Token
 =======================
 

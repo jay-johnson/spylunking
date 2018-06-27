@@ -98,6 +98,7 @@ setup(
         './spylunking/scripts/show_service_token.py',
         './spylunking/scripts/search_splunk.py',
         './spylunking/scripts/test_logging.py',
+        './spylunking/scripts/start_logging_load_test.py',
         './spylunking/scripts/sp'
     ],
     use_2to3=True,
