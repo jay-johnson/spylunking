@@ -87,6 +87,196 @@ Additional optional argument values for simple_logger
 """
 
 
+def show_search_results(
+        log_rec,
+        code_view=True,
+        json_view=False,
+        show_message_details=False):
+    """show_search_results
+
+    Show search results like rsyslog or as pretty-printed
+    JSON dictionaries per log for debugging drill-down fields
+
+    :param log_rec: log record from splunk
+    :param code_view: show as a normal tail -f <log file> view
+    :param json_view: pretty print each log's dictionary
+    :param show_message_details
+    """
+
+    log_dict = None
+    try:
+        log_dict = json.loads(
+            log_rec)
+    except Exception as e:
+        log.error((
+            'Failed logging record={} with ex={}').format(
+                log_rec,
+                e))
+        return
+    # end of try/ex
+
+    if not log_dict:
+        log.error((
+            'Failed to parse log_rec={} as a dictionary').format(
+                log_rec))
+        return
+
+    if code_view:
+        comp_name = log_dict.get(
+            'name',
+            '')
+        logger_name = log_dict.get(
+            'logger_name',
+            '')
+        use_log_name = (
+            '{}').format(
+            logger_name)
+        if logger_name:
+            use_log_name = '{}'.format(
+                logger_name)
+        else:
+            if comp_name:
+                use_log_name = '{}'.format(
+                    comp_name)
+
+        prefix_log = (
+            '{} {} - {} -').format(
+                log_dict.get(
+                    'asctime',
+                    ''),
+                use_log_name,
+                log_dict.get(
+                    'levelname',
+                    ''))
+
+        suffix_log = ''
+        if log_dict.get(
+                'exc',
+                ''):
+            suffix_log = (
+                '{} exc={}').format(
+                    suffix_log,
+                    log_dict.get(
+                        'exc',
+                        ''))
+
+        if show_message_details:
+            suffix_log = (
+                'dc={} env={} '
+                'source={} line={}').format(
+                    log_dict.get(
+                        'dc',
+                        ''),
+                    log_dict.get(
+                        'env',
+                        ''),
+                    log_dict.get(
+                        'path',
+                        ''),
+                    log_dict.get(
+                        'lineno',
+                        ''))
+
+        msg = (
+            '{} {} {}').format(
+                prefix_log,
+                log_dict.get(
+                    'message',
+                    ''),
+                suffix_log)
+
+        if log_dict['levelname'] == 'INFO':
+            log.info((
+                '{}').format(
+                    msg))
+        elif log_dict['levelname'] == 'DEBUG':
+            log.debug((
+                '{}').format(
+                    msg))
+        elif log_dict['levelname'] == 'ERROR':
+            log.error((
+                '{}').format(
+                    msg))
+        elif log_dict['levelname'] == 'CRITICAL':
+            log.critical((
+                '{}').format(
+                    msg))
+        elif log_dict['levelname'] == 'WARN':
+            log.warn((
+                '{}').format(
+                    msg))
+        else:
+            log.debug((
+                '{}').format(
+                    msg))
+    elif json_view:
+        if log_dict['levelname'] == 'INFO':
+            log.info((
+                '{}').format(
+                    ppj(log_dict)))
+        elif log_dict['levelname'] == 'DEBUG':
+            log.debug((
+                '{}').format(
+                    ppj(log_dict)))
+        elif log_dict['levelname'] == 'ERROR':
+            log.error((
+                '{}').format(
+                    ppj(log_dict)))
+        elif log_dict['levelname'] == 'CRITICAL':
+            log.critical((
+                '{}').format(
+                    ppj(log_dict)))
+        elif log_dict['levelname'] == 'WARN':
+            log.warn((
+                '{}').format(
+                    ppj(log_dict)))
+        else:
+            log.debug((
+                '{}').format(
+                    ppj(log_dict)))
+    else:
+        log.error((
+            'Please use either code_view or json_view to view the logs'))
+    # end of handling different log view presentation types
+
+# end of show_search_results
+
+
+def show_non_search_results(
+        log_rec,
+        code_view=True,
+        json_view=False,
+        show_message_details=False):
+    """show_non_search_results
+
+    Show non-search results for search jobs like:
+    ``index="antinex" | stats count``
+
+    :param log_rec: log record from splunk
+    :param code_view: show as a normal tail -f <log file> view
+    :param json_view: pretty print each log's dictionary
+    :param show_message_details
+    """
+
+    log_dict = None
+    try:
+        log_dict = json.loads(
+            log_rec)
+    except Exception as e:
+        log_dict = None
+    # end of try/ex
+
+    if not log_dict:
+        log.info((
+            '{}').format(
+                ppj(log_rec)))
+    else:
+        log.info((
+            '{}').format(
+                ppj(log_dict)))
+# end of show_non_search_results
+
+
 def run_main():
     """run_main
 
@@ -159,10 +349,10 @@ def run_main():
         dest='verify',
         action='store_true')
     parser.add_argument(
-        '-s',
-        help='silent',
+        '-b',
+        help='verbose',
         required=False,
-        dest='silent',
+        dest='verbose',
         action='store_true')
     args = parser.parse_args()
 
@@ -180,7 +370,7 @@ def run_main():
         'antinex')
     verbose = bool(str(ev(
         'SPLUNK_VERBOSE',
-        'true')).lower() == 'true')
+        'false')).lower() == 'true')
     show_message_details = bool(str(ev(
         'MESSAGE_DETAILS',
         'false')).lower() == 'true')
@@ -207,8 +397,8 @@ def run_main():
         earliest_time_minutes = int(args.earliest_time_minutes)
     if args.latest_time_minutes:
         latest_time_minutes = int(args.latest_time_minutes)
-    if args.silent:
-        verbose = False
+    if args.verbose:
+        verbose = True
     if args.message_details:
         show_message_details = args.message_details
     if args.json_view:
@@ -347,124 +537,23 @@ def run_main():
                     e))
 
         for ridx, log_record in enumerate(result_list):
-            org_rec = json.loads(log_record['_raw'])
-            if code_view:
-                rec = org_rec
-                comp_name = rec.get(
-                    'name',
-                    '')
-                logger_name = rec.get(
-                    'logger_name',
-                    '')
-                use_log_name = (
-                    '{}').format(
-                    logger_name)
-                if logger_name:
-                    use_log_name = '{}'.format(
-                        logger_name)
-                else:
-                    if comp_name:
-                        use_log_name = '{}'.format(
-                            comp_name)
-
-                prefix_log = (
-                    '{} {} - {} -').format(
-                        rec.get(
-                            'asctime',
-                            ''),
-                        use_log_name,
-                        rec.get(
-                            'levelname',
-                            ''))
-
-                suffix_log = ''
-                if rec.get(
-                        'exc',
-                        ''):
-                    suffix_log = (
-                        '{} exc={}').format(
-                            suffix_log,
-                            rec.get(
-                                'exc',
-                                ''))
-
-                if show_message_details:
-                    suffix_log = (
-                        'dc={} env={} '
-                        'source={} line={}').format(
-                            rec.get(
-                                'dc',
-                                ''),
-                            rec.get(
-                                'env',
-                                ''),
-                            rec.get(
-                                'path',
-                                ''),
-                            rec.get(
-                                'lineno',
-                                ''))
-
-                msg = (
-                    '{} {} {}').format(
-                        prefix_log,
-                        rec.get(
-                            'message',
-                            ''),
-                        suffix_log)
-
-                if rec['levelname'] == 'INFO':
-                    log.info((
-                        '{}').format(
-                            msg))
-                elif rec['levelname'] == 'DEBUG':
-                    log.debug((
-                        '{}').format(
-                            msg))
-                elif rec['levelname'] == 'ERROR':
-                    log.error((
-                        '{}').format(
-                            msg))
-                elif rec['levelname'] == 'CRITICAL':
-                    log.critical((
-                        '{}').format(
-                            msg))
-                elif rec['levelname'] == 'WARN':
-                    log.warn((
-                        '{}').format(
-                            msg))
-                else:
-                    log.debug((
-                        '{}').format(
-                            msg))
-            elif json_view:
-                rec = org_rec
-                if rec['levelname'] == 'INFO':
-                    log.info((
-                        '{}').format(
-                            ppj(rec)))
-                elif rec['levelname'] == 'DEBUG':
-                    log.debug((
-                        '{}').format(
-                            ppj(rec)))
-                elif rec['levelname'] == 'ERROR':
-                    log.error((
-                        '{}').format(
-                            ppj(rec)))
-                elif rec['levelname'] == 'CRITICAL':
-                    log.critical((
-                        '{}').format(
-                            ppj(rec)))
-                elif rec['levelname'] == 'WARN':
-                    log.warn((
-                        '{}').format(
-                            ppj(rec)))
-                else:
-                    log.debug((
-                        '{}').format(
-                            ppj(rec)))
-        # end of finding responses
-
+            log_raw = log_record.get(
+                '_raw',
+                None)
+            if log_raw:
+                show_search_results(
+                    log_rec=log_raw,
+                    code_view=code_view,
+                    json_view=json_view,
+                    show_message_details=show_message_details)
+            else:
+                show_non_search_results(
+                    log_rec=log_record,
+                    code_view=code_view,
+                    json_view=json_view,
+                    show_message_details=show_message_details)
+            # end of handling log record presentation as a view
+        # end for all log records
     else:
         log.error((
             'Failed searching splunk with status={} and '

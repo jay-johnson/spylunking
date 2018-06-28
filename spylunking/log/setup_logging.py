@@ -15,6 +15,15 @@ with a local or remote splunk server:
     export SPLUNK_USER="trex"
     export SPLUNK_TOKEN="<Optional pre-existing Splunk token>"
 
+Splunk optional tuning environment variables:
+
+::
+
+    export SPLUNK_RETRY_COUNT="<number of attempts to send logs>"
+    export SPLUNK_TIMEOUT="<timeout in seconds per attempt>"
+    export SPLUNK_QUEUE_SIZE="<integer value or 0 for infinite>"
+    export SPLUNK_FLUSH_INTERVAL="<seconds to flush the queued logs>"
+
 """
 
 import os
@@ -267,6 +276,99 @@ def setup_logging(
                         splunk_index
                 config['handlers'][splunk_handler_name]['debug'] = \
                     splunk_debug
+
+                if os.getenv(
+                        'SPLUNK_QUEUE_SIZE',
+                        None):
+                    # assume infinite to safeguard issues
+                    queue_size = 0
+                    try:
+                        queue_size = int(os.get(
+                            'SPLUNK_QUEUE_SIZE',
+                            None))
+                    except Exception as e:
+                        queue_size = 0
+                        print(
+                            'Invalid queue_size={} env value'.format(
+                                os.getenv(
+                                    'SPLUNK_QUEUE_SIZE',
+                                    None)))
+                    # end of try/ex parsing SPLUNK_QUEUE_SIZE
+                    key = 'queue_size'
+
+                    config['handlers'][splunk_handler_name][key] = \
+                        queue_size
+                # end of checking for queue_size changes
+
+                if os.getenv(
+                        'SPLUNK_FLUSH_INTERVAL',
+                        None):
+                    # assume 2.0 seconds to safeguard issues
+                    flush_interval = 2.0
+                    try:
+                        flush_interval = float(os.get(
+                            'SPLUNK_FLUSH_INTERVAL',
+                            None))
+                    except Exception as e:
+                        flush_interval = 2.0
+                        print(
+                            'Invalid flush_interval={} env value'.format(
+                                os.getenv(
+                                    'SPLUNK_FLUSH_INTERVAL',
+                                    None)))
+                    # end of try/ex parsing SPLUNK_FLUSH_INTERVAL
+                    key = 'flush_interval'
+
+                    config['handlers'][splunk_handler_name][key] = \
+                        flush_interval
+                # end of checking for flush_interval changes
+
+                if os.getenv(
+                        'SPLUNK_RETRY_COUNT',
+                        None):
+                    # assume 20 to safeguard issues
+                    retry_count = 20
+                    try:
+                        retry_count = float(os.get(
+                            'SPLUNK_RETRY_COUNT',
+                            None))
+                    except Exception as e:
+                        retry_count = 20
+                        print(
+                            'Invalid retry_count={} env value'.format(
+                                os.getenv(
+                                    'SPLUNK_RETRY_COUNT',
+                                    None)))
+                    # end of try/ex parsing SPLUNK_RETRY_COUNT
+                    key = 'retry_count'
+
+                    config['handlers'][splunk_handler_name][key] = \
+                        retry_count
+                # end of checking for retry_count changes
+
+                if os.getenv(
+                        'SPLUNK_TIMEOUT',
+                        None):
+                    # assume 10 to safeguard issues
+                    splunk_timeout = 10
+                    try:
+                        splunk_timeout = float(os.get(
+                            'SPLUNK_TIMEOUT',
+                            None))
+                    except Exception as e:
+                        splunk_timeout = 10
+                        print(
+                            'Invalid splunk_timeout={} env value'.format(
+                                os.getenv(
+                                    'SPLUNK_TIMEOUT',
+                                    None)))
+                    # end of try/ex parsing SPLUNK_TIMEOUT
+                    key = 'timeout'
+
+                    config['handlers'][splunk_handler_name][key] = \
+                        splunk_timeout
+                # end of checking for retry_count changes
+
                 if found_splunk_handler:
                     config['root']['handlers'].append(
                         splunk_handler_name)
@@ -369,8 +471,9 @@ def setup_logging(
                     'sourcetype': 'json',
                     'verify': False,
                     'timeout': 10,
-                    'flush_interval': 5,
-                    'retry_count': 5,
+                    'retry_count': 60,
+                    'flush_interval': 2,
+                    'queue_size': 1000000,
                     'debug': False
                 }
             },

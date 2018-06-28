@@ -103,8 +103,6 @@ Use the command line tool: **sp** to search for recent logs.
 
     ::
 
-        sp - INFO - creating client user=trex address=splunkenterprise:8089
-        sp - INFO - connecting trex@splunkenterprise:8089
         sp - INFO - No matches for search={
             "search": "search index=\"antinex\" | head 10"
         }
@@ -145,8 +143,6 @@ Running ``sp`` should return something like these test logs:
 
     sp -u trex -p 123321 -a splunkenterprise:8089
 
-    sp - INFO - creating client user=trex address=splunkenterprise:8089
-    sp - INFO - connecting trex@splunkenterprise:8089
     sp - ERROR - testingsplunk.testingsplunk 2018-06-24 01:07:36,379 - Testing EXCEPTION with ex=Throw for testing exceptions message_id=c1e100f4-202d-48ac-9803-91c4f02c9a92 dc= env= source=/opt/spylunking/spylunking/scripts/test_logging.py line=41 ex=None
     sp - CRITICAL - testingsplunk.testingsplunk 2018-06-24 01:07:36,379 - testing CRITICAL message_id=7271a65d-d563-4231-b24a-b17364044818 dc= env= source=/opt/spylunking/spylunking/scripts/test_logging.py line=31 ex=None
     sp - ERROR - testingsplunk.testingsplunk 2018-06-24 01:07:36,379 - testing ERROR message_id=9227cc2f-f734-4b99-8448-117776ef6bff dc= env= source=/opt/spylunking/spylunking/scripts/test_logging.py line=29 ex=None
@@ -163,8 +159,6 @@ Pull Logs with a Query on the Command Line
 
     sp -q 'index="antinex" AND levelname=INFO | head 10' \
         -u trex -p 123321 -a splunkenterprise:8089
-    sp - INFO - creating client user=trex address=splunkenterprise:8089
-    sp - INFO - connecting trex@splunkenterprise:8089
     sp - INFO - testingsplunk.testingsplunk 2018-06-24 01:40:18,313 - testing INFO message_id=74b8fe93-ce07-4b8f-a700-dcf4665416d3 dc= env= source=/opt/spylunking/spylunking/scripts/test_logging.py line=27 ex=None
     sp - INFO - testingsplunk.testingsplunk 2018-06-24 01:25:19,162 - testing INFO message_id=766e1408-1252-47e2-99db-e3154f5b915a dc= env= source=/opt/spylunking/spylunking/scripts/test_logging.py line=27 ex=None
     sp - INFO - testingsplunk.testingsplunk 2018-06-24 01:07:36,378 - testing INFO message_id=ce9c91dc-3af9-484d-aeb0-fc09194bb42e dc= env= source=/opt/spylunking/spylunking/scripts/test_logging.py line=27 ex=None
@@ -194,8 +188,6 @@ Running ``sp`` also works if you want to view the full json fields:
 
     sp -j -u trex -p 123321 -a splunkenterprise:8089
 
-    sp - INFO - creating client user=trex address=splunkenterprise:8089
-    sp - INFO - connecting trex@splunkenterprise:8089
     sp - ERROR - {
         "asctime": "2018-06-24 01:07:36,379",
         "custom_key": "custom value",
@@ -377,8 +369,6 @@ Which should return the newly published logs:
 
 ::
 
-    sp - INFO - creating client user=trex address=splunkenterprise:8089
-    sp - INFO - connecting trex@splunkenterprise:8089
     sp - ERROR - testingsplunk.testingsplunk 2018-06-24 01:07:36,379 - Testing EXCEPTION with ex=Throw for testing exceptions message_id=c1e100f4-202d-48ac-9803-91c4f02c9a92 dc= env= source=/opt/spylunking/spylunking/scripts/test_logging.py line=41 ex=None
     sp - CRITICAL - testingsplunk.testingsplunk 2018-06-24 01:07:36,379 - testing CRITICAL message_id=7271a65d-d563-4231-b24a-b17364044818 dc= env= source=/opt/spylunking/spylunking/scripts/test_logging.py line=31 ex=None
     sp - ERROR - testingsplunk.testingsplunk 2018-06-24 01:07:36,379 - testing ERROR message_id=9227cc2f-f734-4b99-8448-117776ef6bff dc= env= source=/opt/spylunking/spylunking/scripts/test_logging.py line=29 ex=None
@@ -471,8 +461,6 @@ Once published, you can search for these new logs using those new JSON fields wi
 ::
 
     sp -q 'index="antinex" AND name=hello-world'
-    creating client user=trex address=splunk:8089
-    connecting trex@splunk:8089
     2018-06-25 20:48:51,368 testingsplunk - ERROR - Testing EXCEPTION with ex=Throw for testing exceptions message_id=70fc422d-d33b-4a9e-bb51-ed86aa0a02f9 
     2018-06-25 20:48:51,368 testingsplunk - CRITICAL - testing CRITICAL message_id=0c0f56f2-e87f-41a0-babb-b71e2b9d5d5a 
     2018-06-25 20:48:51,368 testingsplunk - ERROR - testing ERROR message_id=0dc1086d-4fe4-4062-9882-e822f9256d6f 
@@ -484,8 +472,6 @@ And you can view log the full JSON dictionaries using the ``-j`` argument on the
 ::
 
     sp -q 'index="antinex" AND name=hello-world' -j
-    creating client user=trex address=splunk:8089
-    connecting trex@splunk:8089
     {
         "asctime": "2018-06-25 20:48:51,368",
         "custom_key": "custom value",
@@ -575,6 +561,21 @@ password: **123321**
 
 Troubleshooting
 ---------------
+
+Splunk Handler Dropping Logs
+============================
+
+If the splunk handler is dropping log messages you can use these values to tune the handler's worker thread:
+
+::
+
+    export SPLUNK_RETRY_COUNT="<number of attempts to send logs>"
+    export SPLUNK_TIMEOUT="<timeout in seconds per attempt>"
+    export SPLUNK_QUEUE_SIZE="<integer value or 0 for infinite>"
+    export SPLUNK_FLUSH_INTERVAL="<seconds to flush the queued logs>"
+
+Testing in a Python Shell
+=========================
 
 Here is a debugging python shell session for showing some common errors you can expect to see as you start to play around with ``spylunking``.
 
@@ -718,8 +719,8 @@ Please refer to the command line tool's updated usage prompt for help searching 
 ::
 
     usage: sp [-h] [-u USER] [-p PASSWORD] [-f DATAFILE] [-i INDEX_NAME]
-           [-a ADDRESS] [-e EARLIEST_TIME_MINUTES] [-l LATEST_TIME_MINUTES]
-           [-v VERIFY] [-s]
+          [-a ADDRESS] [-e EARLIEST_TIME_MINUTES] [-l LATEST_TIME_MINUTES]
+          [-q [QUERY_ARGS [QUERY_ARGS ...]]] [-j] [-m] [-v] [-b]
 
     Search Splunk
 
@@ -731,11 +732,16 @@ Please refer to the command line tool's updated usage prompt for help searching 
     -i INDEX_NAME         index to search
     -a ADDRESS            host address: <fqdn:port>
     -e EARLIEST_TIME_MINUTES
-                            earliest_time minutes back
+                            (Optional) earliest_time minutes back
     -l LATEST_TIME_MINUTES
-                            latest_time minutes back
-    -v VERIFY             verify certs - disabled by default
-    -s                    silent
+                            (Optional) latest_time minutes back
+    -q [QUERY_ARGS [QUERY_ARGS ...]], --queryargs [QUERY_ARGS [QUERY_ARGS ...]]
+                            query string for searching splunk: search
+                            index="antinex" AND levelname="ERROR"
+    -j                    (Optional) view as json dictionary logs
+    -m                    (Optional) verbose message when getting logs
+    -v                    (Optional) verify certs - disabled by default
+    -b                    verbose
 
 For trying the host-only compose file, you may see errors like:
 
