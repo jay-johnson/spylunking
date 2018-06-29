@@ -246,6 +246,35 @@ Running ``sp`` also works if you want to view the full json fields:
     }
     sp - INFO - done
 
+Running Stats Commands like Counting Log Matches
+------------------------------------------------
+
+After running a few million logs through the Splunk container you can count the number of matches using ``sp``:
+
+::
+
+    sp -q 'index="antinex" | stats count'
+    {
+        "count": "9261227"
+    }
+
+Splunk Client Load Testing
+--------------------------
+
+If you are looking to tune your Splunk client logging performance, then please check out the `included load tester <https://github.com/jay-johnson/spylunking/blob/448d62e641f114104361bf380f37629cf57fe0c0/spylunking/scripts/start_logging_load_test.py#L5>`__ to validate the deployed configuration will not fail to publish log messages (if that is required for your client).
+
+Before using this in production, please note it is possible to overflow the current python queues during something like an extended Splunk maintenance window or if the client is publishing logs over an unreliable network connection. The default configuration is only going to queue up to 1 million log messages before starting to drop new logs. Another way to test this is if your application is writing logs faster than the Splunk REST API can keep up, then eventually it will overflow the queue's default depth. If you are concerned about not losing log messages, then the logger should set a `flush interval <https://github.com/jay-johnson/spylunking/blob/448d62e641f114104361bf380f37629cf57fe0c0/spylunking/log/shared-logging.json#L52>`__ of ``0`` to disable the asynchronous, threaded queue support. This will put the client logger into a blocking mode and ensure there are no missed log messages. Please consider that this change will only create blocking log publishers where the ``retry_count`` and ``timeout`` values should be tuned to your application's needs to prevent slow application performance while waiting on the client's HTTP requests to acknowledge each log was received.
+
+Here is how to start a single process load tester:
+
+::
+
+    ./spylunking/scripts/start_logging_load_test.py
+    2018-06-28 22:01:47,702 - load-test-2018_06_29_05_01_47 - INFO - INFO message_id=acdbfd0a-6349-4c2e-959c-f49572fc94ca
+    2018-06-28 22:01:47,702 - load-test-2018_06_29_05_01_47 - ERROR - ERROR message_id=7daf8a8e-0d8d-4aa8-9ed1-313cd5dfb421
+    2018-06-28 22:01:47,702 - load-test-2018_06_29_05_01_47 - CRITICAL - CRITICAL message_id=a27e7778-94be-4a35-9ce2-279403b7cf60
+    2018-06-28 22:01:47,703 - load-test-2018_06_29_05_01_47 - WARNING - WARN message_id=d4f39765-5812-4e2e-b7ce-857b231f79d4
+
 Logging to Splunk from a Python Shell
 -------------------------------------
 

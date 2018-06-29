@@ -367,7 +367,7 @@ def setup_logging(
 
                     config['handlers'][splunk_handler_name][key] = \
                         splunk_timeout
-                # end of checking for retry_count changes
+                # end of checking for splunk_timeout changes
 
                 if found_splunk_handler:
                     config['root']['handlers'].append(
