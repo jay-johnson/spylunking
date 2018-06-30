@@ -32,7 +32,7 @@ def perform_exit():
     for instance in instances:
         try:
             instance.shutdown()
-        except:
+        except Exception:
             worked = False
     if not worked:
         if os.getenv(
@@ -48,7 +48,7 @@ def force_flush():
     for instance in instances:
         try:
             instance.force_flush()
-        except:
+        except Exception:
             worked = False
     if not worked:
         if os.getenv(
@@ -335,7 +335,7 @@ class SplunkPublisher(logging.Handler):
                         'Exception in Splunk logging handler: {}'.format(
                             e))
                     self.write_log(traceback.format_exc())
-                except:
+                except Exception:
                     self.write_debug_log(
                         'Exception encountered,'
                         'but traceback could not be formatted')
