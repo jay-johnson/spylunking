@@ -290,9 +290,9 @@ def setup_logging(
                     # assume infinite to safeguard issues
                     queue_size = 0
                     try:
-                        queue_size = int(os.get(
+                        queue_size = int(os.getenv(
                             'SPLUNK_QUEUE_SIZE',
-                            None))
+                            queue_size))
                     except Exception as e:
                         queue_size = 0
                         print(
@@ -310,14 +310,14 @@ def setup_logging(
                 if os.getenv(
                         'SPLUNK_SLEEP_INTERVAL',
                         None):
-                    # assume 0.2 seconds to safeguard issues
-                    sleep_interval = 0.2
+                    # assume 1.0 seconds to safeguard issues
+                    sleep_interval = 1.0
                     try:
-                        sleep_interval = float(os.get(
+                        sleep_interval = float(os.getenv(
                             'SPLUNK_SLEEP_INTERVAL',
-                            None))
+                            sleep_interval))
                     except Exception as e:
-                        sleep_interval = 0.2
+                        sleep_interval = 1.0
                         print(
                             'Invalid sleep_interval={} env value'.format(
                                 os.getenv(
@@ -336,9 +336,9 @@ def setup_logging(
                     # assume 20 to safeguard issues
                     retry_count = 20
                     try:
-                        retry_count = float(os.get(
+                        retry_count = int(os.getenv(
                             'SPLUNK_RETRY_COUNT',
-                            None))
+                            retry_count))
                     except Exception as e:
                         retry_count = 20
                         print(
@@ -359,9 +359,9 @@ def setup_logging(
                     # assume 10 to safeguard issues
                     splunk_timeout = 10
                     try:
-                        splunk_timeout = float(os.get(
+                        splunk_timeout = float(os.getenv(
                             'SPLUNK_TIMEOUT',
-                            None))
+                            splunk_timeout))
                     except Exception as e:
                         splunk_timeout = 10
                         print(
@@ -466,7 +466,7 @@ def setup_logging(
                 },
                 '{}'.format(splunk_handler_name): {
                     'class': (
-                        'spylunking.log.splunk_publisher.SplunkPublisher'),
+                        'spylunking.splunk_publisher.SplunkPublisher'),
                     'host': '{}'.format(
                         splunk_host),
                     'port': '{}'.format(
@@ -480,7 +480,7 @@ def setup_logging(
                     'verify': False,
                     'timeout': 10,
                     'retry_count': 60,
-                    'sleep_interval': 0.2,
+                    'sleep_interval': 1.0,
                     'queue_size': 1000000,
                     'debug': False
                 }

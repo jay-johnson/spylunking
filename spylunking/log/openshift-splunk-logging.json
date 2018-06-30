@@ -29,7 +29,7 @@
       "stream": "ext://sys.stdout"
     },
     "splunk": {
-      "class": "spylunking.log.splunk_publisher.SplunkPublisher",
+      "class": "spylunking.splunk_publisher.SplunkPublisher",
       "host": "localhost",
       "port": "8088",
       "index": "antinex",

@@ -10,7 +10,6 @@ with multiple Celery worker processes.
 """
 import os
 import sys
-import atexit
 import json
 import logging
 import socket
@@ -27,49 +26,6 @@ if is_py2:
     import Queue as queue
 else:
     import queue as queue
-
-# For keeping track of running class instances
-instances = []
-
-
-# Called when application exit imminent (main thread ended / got kill signal)
-@atexit.register
-def perform_exit():
-    """perform_exit"""
-    worked = True
-    for instance in instances:
-        try:
-            instance.shutdown()
-        except Exception as e:
-            print((
-                'Failed shutdown with ex={}').format(
-                    e))
-            worked = False
-    if not worked:
-        if os.getenv(
-                'SPLUNK_DEBUG',
-                '0') == '1':
-            print('Failed exiting')
-# end of perform_exit
-
-
-def force_flush():
-    """force_flush"""
-    worked = True
-    for instance in instances:
-        try:
-            instance.force_flush()
-        except Exception as e:
-            print((
-                'Failed flushing queues with ex={}').format(
-                    e))
-            worked = False
-    if not worked:
-        if os.getenv(
-                'SPLUNK_DEBUG',
-                '0') == '1':
-            print('Failed flushing queues')
-# end of force_flush
 
 
 class SplunkPublisher(logging.Handler):
@@ -96,7 +52,7 @@ class SplunkPublisher(logging.Handler):
             sourcetype='text',
             verify=True,
             timeout=60,
-            sleep_interval=0.2,
+            sleep_interval=None,
             queue_size=0,
             debug=False,
             retry_count=20,
@@ -124,8 +80,6 @@ class SplunkPublisher(logging.Handler):
         :param retry_backoff: cooldown timer in seconds
         """
 
-        global instances
-        instances.append(self)
         logging.Handler.__init__(self)
 
         self.host = host
@@ -136,19 +90,23 @@ class SplunkPublisher(logging.Handler):
         self.sourcetype = sourcetype
         self.verify = verify
         self.timeout = timeout
-        self.sleep_interval = os.getenv(
-            'SPLUNK_SLEEP_INTERVAL',
-            sleep_interval)
-        if not self.sleep_interval:
-            self.sleep_interval = 0.2
+        self.sleep_interval = sleep_interval
+        if self.sleep_interval is None:
+            self.sleep_interval = float(os.getenv(
+                'SPLUNK_SLEEP_INTERVAL',
+                '0.5'))
         self.log_payload = ''
-        self.manager = multiprocessing.Manager()
-        self.queue = self.manager.Queue()
+
         self.session = requests.Session()
         self.retry_count = retry_count
         self.retry_backoff = retry_backoff
         self.num_sent = 0
+
+        # Multiprocesing entities
         self.processes = []
+        self.manager = multiprocessing.Manager()
+        self.queue = self.manager.Queue()
+        self.exit = multiprocessing.Event()
 
         self.debug = debug
         if os.getenv(
@@ -181,10 +139,11 @@ class SplunkPublisher(logging.Handler):
 
         # Set up automatic retry with back-off
         self.write_debug_log('preparing to create a Requests session')
-        retry = Retry(total=self.retry_count,
-                      backoff_factor=self.retry_backoff,
-                      method_whitelist=False,  # Retry for any HTTP verb
-                      status_forcelist=[500, 502, 503, 504])
+        retry = Retry(
+            total=self.retry_count,
+            backoff_factor=self.retry_backoff,
+            method_whitelist=False,  # Retry for any HTTP verb
+            status_forcelist=[500, 502, 503, 504])
         self.session.mount('https://', HTTPAdapter(max_retries=retry))
 
         self.start_worker_thread()
@@ -215,7 +174,7 @@ class SplunkPublisher(logging.Handler):
                 traceback.format_exc())
             return
 
-        if not self.shutdown_now and self.sleep_interval > 0.1:
+        if not self.is_shutting_down() and self.sleep_interval > 0.1:
             try:
                 self.write_debug_log(
                     'writing record to log queue')
@@ -234,11 +193,14 @@ class SplunkPublisher(logging.Handler):
     def close(self):
         """close"""
         self.write_debug_log(
-            'closing handler - start join on processes={}'.format(
-                len(self.processes)))
+            'closing handler - start shutdown')
         self.shutdown()
         logging.Handler.close(self)
+        self.write_debug_log(
+            'closing handler - join on processes={}'.format(
+                len(self.processes)))
         for process in self.processes:
+            process.terminate()
             process.join()
         self.write_debug_log(
             'closing handler - done')
@@ -252,7 +214,7 @@ class SplunkPublisher(logging.Handler):
         to Splunk
         """
         # Start a worker thread responsible for sending logs
-        if not self.shutdown_now and self.sleep_interval > 0.1:
+        if not self.is_shutting_down() and self.sleep_interval > 0.1:
             self.processes = []
             self.write_debug_log(
                 'starting multiprocessing.Process')
@@ -330,12 +292,25 @@ class SplunkPublisher(logging.Handler):
         Build the ``self.log_payload`` from the queued log messages
         and POST it to the Splunk endpoint
 
-        :param payload: string message to send to Splunk
+        :param payload: optional string log message to send to Splunk
         """
         self.write_debug_log((
             'publish_to_splunk - start'))
 
-        self.empty_queue()
+        try:
+            self.build_payload_from_queued_messages()
+        except Exception as e:
+            if self.is_shutting_down():
+                self.write_debug_log(
+                    'build_payload_from_queued_messages detected '
+                    'shutdown')
+            else:
+                self.write_log(
+                    'Exception in Splunk logging handler: {}'.format(
+                        e))
+                self.shutdown()
+            return
+        # end of try to return if the queue
 
         use_payload = payload
         if not use_payload:
@@ -397,7 +372,10 @@ class SplunkPublisher(logging.Handler):
 
             self.log_payload = ''
         else:
-            if not self.shutdown_now:
+            if self.is_shutting_down():
+                self.write_debug_log(
+                    'publish_to_splunk - shutting down')
+            else:
                 self.write_debug_log((
                     'no logs to send sleep_interval={}s').format(
                         self.sleep_interval))
@@ -405,18 +383,24 @@ class SplunkPublisher(logging.Handler):
                     self.sleep_interval)
         # end of publish handling
 
-        self.write_debug_log((
-            'publish_to_splunk - done'))
+        self.write_debug_log(
+            'publish_to_splunk - done')
     # end of publish_to_splunk
 
-    def empty_queue(
+    def build_payload_from_queued_messages(
             self):
-        """empty_queue
+        """build_payload_from_queued_messages
 
         Empty the queued messages by building a large ``self.log_payload``
         """
         not_done = True
         while not_done:
+
+            if self.is_shutting_down():
+                self.write_debug_log(
+                    'build_payload shutting down')
+                return True
+
             self.write_debug_log('reading from queue')
             try:
                 msg = self.queue.get(
@@ -429,8 +413,9 @@ class SplunkPublisher(logging.Handler):
             except queue.Empty:
                 self.write_debug_log((
                     'done emptying queue'))
+                return True
             except Exception as e:
-                if self.shutdown_now:
+                if self.is_shutting_down():
                     self.write_debug_log(
                         'helper was shut down '
                         'msgs in the queue may not all '
@@ -441,21 +426,26 @@ class SplunkPublisher(logging.Handler):
                         'msgs in the queue may not all '
                         'have been sent').format(
                             e))
-                not_done = True
-                self.shutdown_now = True
+                    not_done = True
+                    self.shutdown_now = True
                 return True
             # end of getting log msgs from the queue
+
+            if self.is_shutting_down():
+                self.write_debug_log(
+                    'build_payload - already shutting down')
+                return True
 
             # If the payload is getting very long,
             # stop reading and send immediately.
             # Current limit is 50MB
-            if self.shutdown_now or len(self.log_payload) >= 524288:
+            if self.is_shutting_down() or len(self.log_payload) >= 524288:
                 self.write_debug_log(
                     'payload maximum size exceeded, sending immediately')
                 return False
 
         return True
-    # end of empty_queue
+    # end of build_payload_from_queued_messages
 
     def force_flush(
             self):
@@ -467,16 +457,24 @@ class SplunkPublisher(logging.Handler):
         self.publish_to_splunk()
     # end of force_flush
 
+    def is_shutting_down(
+            self):
+        """is_shutting_down"""
+        return self.exit.is_set() or self.shutdown_now
+    # end of is_shutting_down
+
     def shutdown(
             self):
-        """shutdown"""
+        """shutdown
+        """
 
         # Only initiate shutdown once
-        if self.shutdown_now:
+        if self.is_shutting_down():
             self.write_debug_log('still shutting down')
             return
         else:
             self.write_debug_log('shutdown - start')
+            self.exit.set()
 
         self.write_debug_log('setting instance shutdown_now=True')
         self.shutdown_now = True

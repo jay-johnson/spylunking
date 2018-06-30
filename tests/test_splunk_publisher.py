@@ -4,7 +4,7 @@ import unittest
 import mock
 import json
 import uuid
-from spylunking.log.splunk_publisher import SplunkPublisher
+from spylunking.splunk_publisher import SplunkPublisher
 from tests.mock_utils import mock_post_request
 
 
@@ -22,7 +22,7 @@ SPLUNK_SOURCE = 'test_source'
 SPLUNK_SOURCETYPE = 'test_sourcetype'
 SPLUNK_VERIFY = False
 SPLUNK_TIMEOUT = 27
-SPLUNK_SLEEP_INTERVAL = 0.2
+SPLUNK_SLEEP_INTERVAL = 0.0
 SPLUNK_QUEUE_SIZE = 1111
 SPLUNK_DEBUG = False
 SPLUNK_RETRY_COUNT = 1
@@ -60,6 +60,8 @@ class TestSplunkPublisher(unittest.TestCase):
         self.org_value = os.getenv(
             'TEST_POST',
             None)
+        os.environ.pop(
+            'TEST_POST', None)
     # end of setUp
 
     def tearDown(self):

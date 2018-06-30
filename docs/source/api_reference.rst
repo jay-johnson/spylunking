@@ -216,5 +216,5 @@ Splunk Publisher
 
 The Splunk Publisher handles sending logs to the configured Splunk server. It was originally inspired from https://github.com/zach-taylor/splunk_handler but after encountering issues within Celery tasks this class was created to maintain a stable logger from inside a Celery task.
 
-.. automodule:: spylunking.log.splunk_publisher
+.. automodule:: spylunking.splunk_publisher
    :members: SplunkPublisher
