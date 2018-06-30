@@ -28,7 +28,7 @@ This project holds a Splunk-ready python logger with search tools for quickly fi
            :target: http://spylunking.readthedocs.io/en/latest/
 
 Getting Started
-===============
+---------------
 
 #.  Clone the repo
 
@@ -54,6 +54,39 @@ Getting Started
     ::
 
        ./run-splunk-in-docker.sh 
+
+Publishing Logs to Splunk using the Spylunking Logger
+-----------------------------------------------------
+
+Here is a video showing how to use the Spylunking logger from a python shell:
+
+.. raw:: html
+
+    <a href="https://asciinema.org/a/189526?autoplay=1" target="_blank"><img src="https://asciinema.org/a/189526.png"/></a>
+
+Here is the code from the asciinema video above:
+
+.. code-block:: python
+
+    import json
+    from spylunking.log.setup_logging import build_colorized_logger
+    import spylunking.search as sp
+    from spylunking.ppj import ppj
+    print("build the logger")
+    log = build_colorized_logger(
+        name="spylunking-in-a-shell",
+        splunk_user="trex",
+        splunk_password="123321")
+    print("import the search wrapper")
+    res = sp.search(
+        user="trex",
+        password="123321",
+        address="splunkenterprise:8089",
+        query_dict={
+            "search": "search index=\"antinex\" | head 1"
+        })
+    print("pretty print the first record in the result list")
+    log.critical("found search results={}".format(ppj(json.loads(res["record"]["results"][0]["_raw"]))))
 
 Get a Splunk User Token
 -----------------------
@@ -274,7 +307,7 @@ Here is how to start a single process load tester:
 
 ::
 
-    ./spylunking/scripts/start_logging_load_test.py
+    ./spylunking/scripts/start_logging_loader.py
     2018-06-28 22:01:47,702 - load-test-2018_06_29_05_01_47 - INFO - INFO message_id=acdbfd0a-6349-4c2e-959c-f49572fc94ca
     2018-06-28 22:01:47,702 - load-test-2018_06_29_05_01_47 - ERROR - ERROR message_id=7daf8a8e-0d8d-4aa8-9ed1-313cd5dfb421
     2018-06-28 22:01:47,702 - load-test-2018_06_29_05_01_47 - CRITICAL - CRITICAL message_id=a27e7778-94be-4a35-9ce2-279403b7cf60
@@ -606,7 +639,7 @@ If the splunk handler is dropping log messages you can use these values to tune 
     export SPLUNK_RETRY_COUNT="<number of attempts to send logs>"
     export SPLUNK_TIMEOUT="<timeout in seconds per attempt>"
     export SPLUNK_QUEUE_SIZE="<integer value or 0 for infinite>"
-    export SPLUNK_FLUSH_INTERVAL="<seconds to flush the queued logs>"
+    export SPLUNK_SLEEP_INTERVAL="<seconds to sleep between publishes>"
     export SPLUNK_DEBUG="<debug the Splunk Publisher by setting to 1>"
 
 Testing in a Python Shell
@@ -835,33 +868,6 @@ Create Token
         -index antinex \
         -uri 'https://splunkenterprise:8089' \
         -auth 'admin:changeme'
-
-Cut and Paste Example
----------------------
-
-Here is a cut and paste example for python 3:
-
-.. code-block:: python
-
-    import json
-    from spylunking.log.setup_logging import build_colorized_logger
-    import spylunking.search as sp
-    from spylunking.ppj import ppj
-    print("build the logger")
-    log = build_colorized_logger(
-        name="spylunking-in-a-shell",
-        splunk_user="trex",
-        splunk_password="123321")
-    print("import the search wrapper")
-    res = sp.search(
-        user="trex",
-        password="123321",
-        address="splunkenterprise:8089",
-        query_dict={
-            "search": "search index=\"antinex\" | head 1"
-        })
-    print("pretty print the first record in the result list")
-    log.critical("found search results={}".format(ppj(json.loads(res["record"]["results"][0]["_raw"]))))
 
 Development
 -----------

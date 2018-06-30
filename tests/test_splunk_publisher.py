@@ -3,7 +3,9 @@ import logging
 import unittest
 import mock
 import json
+import uuid
 from spylunking.log.splunk_publisher import SplunkPublisher
+from tests.mock_utils import mock_post_request
 
 
 # These are intentionally different than the kwarg defaults
@@ -13,14 +15,14 @@ SPLUNK_COLLECTOR_URL = (
     "https://{}:{}/services/collector").format(
         SPLUNK_HOST,
         SPLUNK_PORT)
-SPLUNK_TOKEN = '851A5E58-4EF1-7291-F947-F614A76ACB21'
+SPLUNK_TOKEN = 'ABCDEFGH-IJKL-MNOP-QRST-UVWXYZ123456'
 SPLUNK_INDEX = 'test_index'
 SPLUNK_HOSTNAME = 'test_host'
 SPLUNK_SOURCE = 'test_source'
 SPLUNK_SOURCETYPE = 'test_sourcetype'
 SPLUNK_VERIFY = False
 SPLUNK_TIMEOUT = 27
-SPLUNK_FLUSH_INTERVAL = 5.0
+SPLUNK_SLEEP_INTERVAL = 0.2
 SPLUNK_QUEUE_SIZE = 1111
 SPLUNK_DEBUG = False
 SPLUNK_RETRY_COUNT = 1
@@ -32,60 +34,10 @@ RECEIVER_URL = (
         SPLUNK_PORT)
 
 
-class MockRequest:
-    """MockRequest"""
-
-    def __init__(
-            self):
-        """__init__"""
-        self.vals = None
-        self.called_raise = False
-    # end of __init
-
-    def raise_for_status(
-            self):
-        """mock_raise"""
-        self.called_raise = True
-        return
-    # end of raise_for_status
-
-# end of MockRequest
-
-
-def mock_post_request(
-        self,
-        url,
-        data=None,
-        headers=None,
-        verify=None,
-        timeout=None):
-    """mock_post_request
-
-    Mock ``requests.Session.post``
-
-    :param url: url
-    :param data: data dictionary
-    :param headers: auth headers
-    :param verify: verifiy
-    :param timeout: timeout
-    """
-
-    req = MockRequest()
-    req.vals = {
-        'url': url,
-        'data': data,
-        'headers': headers,
-        'verify': verify,
-        'timeout': timeout
-    }
-    os.environ['TEST_POST'] = json.dumps(
-        req.vals)
-    return req
-# end of mock_post_request
-
-
 class TestSplunkPublisher(unittest.TestCase):
     """TestSplunkPublisher"""
+
+    org_value = None
 
     def setUp(self):
         """setUp"""
@@ -99,14 +51,13 @@ class TestSplunkPublisher(unittest.TestCase):
             sourcetype=SPLUNK_SOURCETYPE,
             verify=SPLUNK_VERIFY,
             timeout=SPLUNK_TIMEOUT,
-            flush_interval=SPLUNK_FLUSH_INTERVAL,
+            sleep_interval=SPLUNK_SLEEP_INTERVAL,
             queue_size=SPLUNK_QUEUE_SIZE,
             debug=SPLUNK_DEBUG,
             retry_count=SPLUNK_RETRY_COUNT,
             retry_backoff=SPLUNK_RETRY_BACKOFF,
         )
-        self.splunk.testing = True
-        self.post_backup_value = os.getenv(
+        self.org_value = os.getenv(
             'TEST_POST',
             None)
     # end of setUp
@@ -114,8 +65,8 @@ class TestSplunkPublisher(unittest.TestCase):
     def tearDown(self):
         """tearDown"""
         self.splunk = None
-        if self.post_backup_value:
-            os.environ['TEST_POST'] = self.post_backup_value
+        if self.org_value:
+            os.environ['TEST_POST'] = self.org_value
     # end of tearDown
 
     def test_init(self):
@@ -132,7 +83,7 @@ class TestSplunkPublisher(unittest.TestCase):
         self.assertEqual(self.splunk.sourcetype, SPLUNK_SOURCETYPE)
         self.assertEqual(self.splunk.verify, SPLUNK_VERIFY)
         self.assertEqual(self.splunk.timeout, SPLUNK_TIMEOUT)
-        self.assertEqual(self.splunk.flush_interval, SPLUNK_FLUSH_INTERVAL)
+        self.assertEqual(self.splunk.sleep_interval, SPLUNK_SLEEP_INTERVAL)
         self.assertEqual(self.splunk.debug, SPLUNK_DEBUG)
         self.assertEqual(self.splunk.retry_count, SPLUNK_RETRY_COUNT)
         self.assertEqual(self.splunk.retry_backoff, SPLUNK_RETRY_BACKOFF)
@@ -154,14 +105,16 @@ class TestSplunkPublisher(unittest.TestCase):
         for h in log.handlers:
             log.removeHandler(h)
 
+        self.splunk.shutdown_now = True
         log = logging.getLogger('test')
         log.addHandler(self.splunk)
-        log.warning('hello!')
 
-        self.splunk.timer.join()  # Have to wait for the timer to exec
+        log_msg = ('testing message={}').format(
+            str(uuid.uuid4()))
+        log.warning(log_msg)
 
         expected_output = {
-            'event': 'hello!',
+            'event': log_msg,
             'host': SPLUNK_HOSTNAME,
             'index': SPLUNK_INDEX,
             'source': SPLUNK_SOURCE,
