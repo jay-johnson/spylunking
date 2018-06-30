@@ -56,6 +56,7 @@ class SplunkPublisher(logging.Handler):
             queue_size=0,
             debug=False,
             retry_count=20,
+            run_once=False,
             retry_backoff=2.0):
         """__init__
 
@@ -78,6 +79,8 @@ class SplunkPublisher(logging.Handler):
         :param debug: debug the publisher
         :param retry_count: number of publish retries per log record
         :param retry_backoff: cooldown timer in seconds
+        :param run_once: flag used by tests for publishing once
+                         and shutting down
         """
 
         logging.Handler.__init__(self)
@@ -103,6 +106,7 @@ class SplunkPublisher(logging.Handler):
         self.num_sent = 0
 
         # Multiprocesing entities
+        self.run_once = run_once
         self.processes = []
         self.manager = multiprocessing.Manager()
         self.queue = self.manager.Queue()
@@ -162,7 +166,7 @@ class SplunkPublisher(logging.Handler):
         :param record: LogRecord to send to Splunk
                        https://docs.python.org/3/library/logging.html
         """
-        self.write_debug_log('emit() called')
+        self.write_debug_log('emit - start')
 
         try:
             record = self.format_record(
@@ -188,22 +192,24 @@ class SplunkPublisher(logging.Handler):
             # Flush log immediately; this is a blocking call
             self.publish_to_splunk(
                 payload=record)
+
+        self.write_debug_log('emit - done')
     # end of emit
 
     def close(self):
         """close"""
         self.write_debug_log(
-            'closing handler - start shutdown')
+            'close - start shutdown')
         self.shutdown()
         logging.Handler.close(self)
         self.write_debug_log(
-            'closing handler - join on processes={}'.format(
+            'close - handler join on processes={}'.format(
                 len(self.processes)))
         for process in self.processes:
             process.terminate()
             process.join()
         self.write_debug_log(
-            'closing handler - done')
+            'close - done')
     # end of close
 
     def start_worker_thread(
@@ -219,7 +225,7 @@ class SplunkPublisher(logging.Handler):
             self.write_debug_log(
                 'starting multiprocessing.Process')
             p = multiprocessing.Process(
-                target=self.publish_to_splunk)
+                target=self.perform_work)
             self.processes.append(p)
             p.start()
     # end of start_worker_thread
@@ -253,7 +259,7 @@ class SplunkPublisher(logging.Handler):
         :param record: message to format
         """
         self.write_debug_log(
-            'format_record() called')
+            'format_record - start')
 
         if self.source is None:
             source = record.pathname
@@ -279,38 +285,104 @@ class SplunkPublisher(logging.Handler):
             sort_keys=True)
 
         self.write_debug_log(
-            'record formatting complete')
+            'format_record - done')
 
         return formatted_record
     # end of format_record
+
+    def perform_work(
+            self):
+        """perform_work
+
+        Process handler function for processing messages
+        found in the ``multiprocessing.Manager.queue``
+
+        Build the ``self.log_payload`` from the queued log messages
+        and POST it to the Splunk endpoint
+
+        """
+
+        self.write_debug_log((
+            'perform_work - start'))
+        try:
+
+            not_done = not self.is_shutting_down()
+
+            while not_done:
+
+                try:
+                    self.build_payload_from_queued_messages()
+                except Exception as e:
+                    if self.is_shutting_down():
+                        self.write_debug_log(
+                            'perform_work - done - detected shutdown')
+                    else:
+                        self.write_log((
+                            'perform_work - done - Exception in '
+                            'shutting down for ex={}').format(
+                                e))
+                        self.shutdown()
+                    return
+                # end of try to return if the queue
+
+                self.publish_to_splunk()
+
+                if self.is_shutting_down():
+                    self.write_debug_log(
+                        'perform_work - done - shutdown detected')
+                    return
+                else:
+                    counter = 0
+                    while counter <= self.sleep_interval:
+                        if self.is_shutting_down():
+                            self.write_debug_log(
+                                'publish_to_splunk - shutting down')
+                            not_done = False
+                            counter = self.sleep_interval
+                            break
+                        else:
+                            self.write_debug_log((
+                                ' - msgs={} '
+                                'sleep_interval={}/{}s').format(
+                                    self.num_sent,
+                                    counter,
+                                    self.sleep_interval))
+                            time.sleep(1.0)
+                            counter += 1
+                        # if shutting down or just sleeping
+                    # end of while resting, periodically check if the shutdown
+                    # was sent
+                # check if done
+
+                self.num_sent = 0
+            # end of while not done
+
+        except Exception as e:
+            if self.is_shutting_down():
+                self.write_debug_log((
+                    'perform_work - shutdown sent={}').format(
+                        self.num_sent))
+            else:
+                self.write_debug_log((
+                    'perform_work - ex={}').format(
+                        e))
+        # end of try/ex
+
+        self.write_debug_log((
+            'perform_work - done'))
+
+    # end of perform_work
 
     def publish_to_splunk(
             self,
             payload=None):
         """publish_to_splunk
 
-        Build the ``self.log_payload`` from the queued log messages
-        and POST it to the Splunk endpoint
-
         :param payload: optional string log message to send to Splunk
         """
+
         self.write_debug_log((
             'publish_to_splunk - start'))
-
-        try:
-            self.build_payload_from_queued_messages()
-        except Exception as e:
-            if self.is_shutting_down():
-                self.write_debug_log(
-                    'build_payload_from_queued_messages detected '
-                    'shutdown')
-            else:
-                self.write_log(
-                    'Exception in Splunk logging handler: {}'.format(
-                        e))
-                self.shutdown()
-            return
-        # end of try to return if the queue
 
         use_payload = payload
         if not use_payload:
@@ -371,20 +443,13 @@ class SplunkPublisher(logging.Handler):
                         'but traceback could not be formatted')
 
             self.log_payload = ''
-        else:
-            if self.is_shutting_down():
-                self.write_debug_log(
-                    'publish_to_splunk - shutting down')
-            else:
-                self.write_debug_log((
-                    'no logs to send sleep_interval={}s').format(
-                        self.sleep_interval))
-                time.sleep(
-                    self.sleep_interval)
         # end of publish handling
 
-        self.write_debug_log(
-            'publish_to_splunk - done')
+        self.write_debug_log((
+            'publish_to_splunk - done - '
+            'self.is_shutting_down={} self.shutdown_now={}').format(
+                self.is_shutting_down(),
+                self.shutdown_now))
     # end of publish_to_splunk
 
     def build_payload_from_queued_messages(
@@ -460,7 +525,7 @@ class SplunkPublisher(logging.Handler):
     def is_shutting_down(
             self):
         """is_shutting_down"""
-        return self.exit.is_set() or self.shutdown_now
+        return self.exit.is_set() or self.shutdown_now or self.run_once
     # end of is_shutting_down
 
     def shutdown(
@@ -470,17 +535,19 @@ class SplunkPublisher(logging.Handler):
 
         # Only initiate shutdown once
         if self.is_shutting_down():
-            self.write_debug_log('still shutting down')
+            self.write_debug_log('shutdown - still shutting down')
             return
         else:
             self.write_debug_log('shutdown - start')
             self.exit.set()
+        # if/else already shutting down
 
-        self.write_debug_log('setting instance shutdown_now=True')
+        self.write_debug_log('shutdown - setting shutdown_now=True')
         self.shutdown_now = True
 
         self.write_debug_log(
-            'starting up the final run of the worker thread before shutdown')
+            'shutdown - trying to publish remaining msgs')
+
         # Send the remaining items that might be sitting in queue.
         self.publish_to_splunk()
         self.write_debug_log('shutdown - done')

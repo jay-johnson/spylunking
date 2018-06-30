@@ -56,6 +56,7 @@ class TestSplunkPublisher(unittest.TestCase):
             debug=SPLUNK_DEBUG,
             retry_count=SPLUNK_RETRY_COUNT,
             retry_backoff=SPLUNK_RETRY_BACKOFF,
+            run_once=True
         )
         self.org_value = os.getenv(
             'TEST_POST',
@@ -86,9 +87,9 @@ class TestSplunkPublisher(unittest.TestCase):
         self.assertEqual(self.splunk.verify, SPLUNK_VERIFY)
         self.assertEqual(self.splunk.timeout, SPLUNK_TIMEOUT)
         self.assertEqual(self.splunk.sleep_interval, SPLUNK_SLEEP_INTERVAL)
-        self.assertEqual(self.splunk.debug, SPLUNK_DEBUG)
         self.assertEqual(self.splunk.retry_count, SPLUNK_RETRY_COUNT)
         self.assertEqual(self.splunk.retry_backoff, SPLUNK_RETRY_BACKOFF)
+        self.assertIsNotNone(self.splunk.debug)
 
         self.assertFalse(logging.getLogger('requests').propagate)
     # end of test_init
@@ -107,7 +108,6 @@ class TestSplunkPublisher(unittest.TestCase):
         for h in log.handlers:
             log.removeHandler(h)
 
-        self.splunk.shutdown_now = True
         log = logging.getLogger('test')
         log.addHandler(self.splunk)
 
