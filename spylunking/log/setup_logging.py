@@ -22,7 +22,7 @@ Splunk optional tuning environment variables:
     export SPLUNK_RETRY_COUNT="<number of attempts to send logs>"
     export SPLUNK_TIMEOUT="<timeout in seconds per attempt>"
     export SPLUNK_QUEUE_SIZE="<integer value or 0 for infinite>"
-    export SPLUNK_FLUSH_INTERVAL="<seconds to flush the queued logs>"
+    export SPLUNK_SLEEP_INTERVAL="<seconds to sleep between publishes>"
     export SPLUNK_DEBUG="<debug the Splunk Publisher by setting to 1>"
 
 """
@@ -308,27 +308,27 @@ def setup_logging(
                 # end of checking for queue_size changes
 
                 if os.getenv(
-                        'SPLUNK_FLUSH_INTERVAL',
+                        'SPLUNK_SLEEP_INTERVAL',
                         None):
-                    # assume 2.0 seconds to safeguard issues
-                    flush_interval = 2.0
+                    # assume 0.2 seconds to safeguard issues
+                    sleep_interval = 0.2
                     try:
-                        flush_interval = float(os.get(
-                            'SPLUNK_FLUSH_INTERVAL',
+                        sleep_interval = float(os.get(
+                            'SPLUNK_SLEEP_INTERVAL',
                             None))
                     except Exception as e:
-                        flush_interval = 2.0
+                        sleep_interval = 0.2
                         print(
-                            'Invalid flush_interval={} env value'.format(
+                            'Invalid sleep_interval={} env value'.format(
                                 os.getenv(
-                                    'SPLUNK_FLUSH_INTERVAL',
+                                    'SPLUNK_SLEEP_INTERVAL',
                                     None)))
-                    # end of try/ex parsing SPLUNK_FLUSH_INTERVAL
-                    key = 'flush_interval'
+                    # end of try/ex parsing SPLUNK_SLEEP_INTERVAL
+                    key = 'sleep_interval'
 
                     config['handlers'][splunk_handler_name][key] = \
-                        flush_interval
-                # end of checking for flush_interval changes
+                        sleep_interval
+                # end of checking for sleep_interval changes
 
                 if os.getenv(
                         'SPLUNK_RETRY_COUNT',
@@ -480,7 +480,7 @@ def setup_logging(
                     'verify': False,
                     'timeout': 10,
                     'retry_count': 60,
-                    'flush_interval': 2,
+                    'sleep_interval': 0.2,
                     'queue_size': 1000000,
                     'debug': False
                 }

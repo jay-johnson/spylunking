@@ -33,7 +33,7 @@ Load Test Splunk
 
 Splunk client load tester for determining how many messages can this client send over splunk. By default, this tester sends a batch of 1000 messages and then sleeps to let the client catch up.
 
-.. automodule:: spylunking.scripts.start_logging_load_test
+.. automodule:: spylunking.scripts.start_logging_loader
    :members: run_main
 
 Get a Splunk User Token

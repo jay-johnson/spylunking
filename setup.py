@@ -11,18 +11,44 @@ from setuptools.command.test import test as TestCommand
 
 
 class PyTest(TestCommand):
+    """PyTest"""
+
     user_options = [('pytest-args=', 'a', 'Arguments to pass to pytest')]
 
-    def initialize_options(self):
+    def initialize_options(
+            self):
+        """initialize_options"""
         TestCommand.initialize_options(self)
         self.pytest_args = ''
+    # end of initialize_options
 
-    def run_tests(self):
-        import shlex
-        # import here, cause outside the eggs aren't loaded
+    def finalize_options(
+            self):
+        """finalize_options"""
+        TestCommand.finalize_options(self)
+        self.test_args = []
+        self.test_suite = True
+    # end of finalize_options
+
+    def run_tests(
+            self):
+        """run_tests"""
         import pytest
-        errno = pytest.main(shlex.split(self.pytest_args))
+        import sys
+
+        errno = pytest.main(self.test_args)
+        self.handle_exit()
         sys.exit(errno)
+    # end of run_tests
+
+    @staticmethod
+    def handle_exit():
+        """handle_exit"""
+        import atexit
+        atexit._run_exitfuncs()
+    # end of handle_exit
+
+# end of PyTest
 
 
 cur_path, cur_script = os.path.split(sys.argv[0])
@@ -97,7 +123,7 @@ setup(
         './spylunking/scripts/show_service_token.py',
         './spylunking/scripts/search_splunk.py',
         './spylunking/scripts/test_logging.py',
-        './spylunking/scripts/start_logging_load_test.py',
+        './spylunking/scripts/start_logging_loader.py',
         './spylunking/scripts/sp'
     ],
     use_2to3=True,

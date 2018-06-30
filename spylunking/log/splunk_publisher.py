@@ -1,4 +1,6 @@
 """
+Publish to Splunk using a ``multiprocessing.Process`` worker
+
 Including a handler derived from the original repository:
 https://github.com/zach-taylor/splunk_handler
 
@@ -94,7 +96,6 @@ class SplunkPublisher(logging.Handler):
             sourcetype='text',
             verify=True,
             timeout=60,
-            flush_interval=2.0,
             sleep_interval=0.2,
             queue_size=0,
             debug=False,
@@ -113,8 +114,6 @@ class SplunkPublisher(logging.Handler):
         :param sourcetype: json
         :param verify: verify using certs
         :param timeout: HTTP request timeout in seconds
-        :param flush_interval: Flush the queue of logs
-                               interval in seconds
         :param sleep_interval: Sleep before purging queued
                                logs interval in seconds
         :param queue_size: Queue this number of logs
@@ -137,9 +136,8 @@ class SplunkPublisher(logging.Handler):
         self.sourcetype = sourcetype
         self.verify = verify
         self.timeout = timeout
-        self.flush_interval = flush_interval
         self.sleep_interval = os.getenv(
-            'SPlUNK_SLEEP_INTERVAL',
+            'SPLUNK_SLEEP_INTERVAL',
             sleep_interval)
         if not self.sleep_interval:
             self.sleep_interval = 0.2
@@ -200,7 +198,7 @@ class SplunkPublisher(logging.Handler):
         """emit
 
         Emit handler for queue-ing message for
-        the helper thread to send to Splunk on the ``flush_interval``
+        the helper thread to send to Splunk on the ``self.sleep_interval``
 
         :param record: LogRecord to send to Splunk
                        https://docs.python.org/3/library/logging.html
@@ -217,7 +215,7 @@ class SplunkPublisher(logging.Handler):
                 traceback.format_exc())
             return
 
-        if self.flush_interval > 0:
+        if not self.shutdown_now and self.sleep_interval > 0.1:
             try:
                 self.write_debug_log(
                     'writing record to log queue')
@@ -254,7 +252,7 @@ class SplunkPublisher(logging.Handler):
         to Splunk
         """
         # Start a worker thread responsible for sending logs
-        if self.flush_interval > 0:
+        if not self.shutdown_now and self.sleep_interval > 0.1:
             self.processes = []
             self.write_debug_log(
                 'starting multiprocessing.Process')
@@ -431,7 +429,6 @@ class SplunkPublisher(logging.Handler):
             except queue.Empty:
                 self.write_debug_log((
                     'done emptying queue'))
-
             except Exception as e:
                 if self.shutdown_now:
                     self.write_debug_log(
@@ -447,11 +444,12 @@ class SplunkPublisher(logging.Handler):
                 not_done = True
                 self.shutdown_now = True
                 return True
+            # end of getting log msgs from the queue
 
             # If the payload is getting very long,
             # stop reading and send immediately.
             # Current limit is 50MB
-            if self.shutdown_now and len(self.log_payload) >= 524288:
+            if self.shutdown_now or len(self.log_payload) >= 524288:
                 self.write_debug_log(
                     'payload maximum size exceeded, sending immediately')
                 return False
