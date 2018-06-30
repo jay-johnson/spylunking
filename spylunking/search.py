@@ -16,7 +16,7 @@ from spylunking.log.setup_logging import \
 
 
 log = build_colorized_logger(
-    name="spylunking.search")
+    name='spylunking.search')
 
 
 def search(
@@ -144,18 +144,18 @@ def search(
                         job_url,
                         e))
 
-        res["status"] = SUCCESS
-        res["err"] = ""
-        res["record"] = response_dict
+        res['status'] = SUCCESS
+        res['err'] = ''
+        res['record'] = response_dict
     except Exception as e:
-        res["err"] = (
+        res['err'] = (
             'Failed searching user={} url={} query={} '
             'ex={}').format(
                 user,
                 query_dict,
                 e)
-        res["status"] = ERR
-        log.error(res["err"])
+        res['status'] = ERR
+        log.error(res['err'])
     # end of try/ex
 
     return res
