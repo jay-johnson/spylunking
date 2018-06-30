@@ -23,6 +23,7 @@ Splunk optional tuning environment variables:
     export SPLUNK_TIMEOUT="<timeout in seconds per attempt>"
     export SPLUNK_QUEUE_SIZE="<integer value or 0 for infinite>"
     export SPLUNK_FLUSH_INTERVAL="<seconds to flush the queued logs>"
+    export SPLUNK_DEBUG="<debug the Splunk Publisher by setting to 1>"
 
 """
 
@@ -181,6 +182,12 @@ def setup_logging(
     :param splunk_debug: optional splunk debug - default to False
 
     """
+
+    if os.getenv(
+            'SPLUNK_DEBUG',
+            '0') == '1':
+        splunk_debug = True
+
     config = None
     if os.getenv(
             'LOG_DICT',
@@ -458,7 +465,8 @@ def setup_logging(
                     'stream': 'ext://sys.stdout'
                 },
                 '{}'.format(splunk_handler_name): {
-                    'class': 'splunk_handler.SplunkHandler',
+                    'class': (
+                        'spylunking.log.splunk_publisher.SplunkPublisher'),
                     'host': '{}'.format(
                         splunk_host),
                     'port': '{}'.format(

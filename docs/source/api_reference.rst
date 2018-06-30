@@ -29,7 +29,7 @@ Simple Logger
 
 Build a simple, no dates colorized logger that prints just the message in colors and does not publish logs to Splunk using:
 
-::
+.. code-block:: python
 
     from spylunking.log.setup_logging import simple_logger
     log = simple_logger()
@@ -41,7 +41,7 @@ No Date Colorized Logger
 
 Build a colorized logger that preserves the parent application name and log level without a date field and does not publish logs to Splunk using:
 
-::
+.. code-block:: python
 
     from spylunking.log.setup_logging import no_date_colors_logger
     log = no_date_colors_logger(name='app-name')
@@ -53,7 +53,7 @@ Test Logger
 
 The test logger is for unittests and does not publish to Splunk.
 
-::
+.. code-block:: python
 
     from spylunking.log.setup_logging import test_logger
     log = test_logger(name='unittest logger')
@@ -65,7 +65,7 @@ Console Logger
 
 The console logger is the same as the ``build_colorized_logger`` which can be created with authenticated Splunk-ready logging using:
 
-::
+.. code-block:: python
 
     from spylunking.log.setup_logging import build_colorized_logger
     log = build_colorized_logger(name='using-a-colorized-logger')
@@ -210,3 +210,11 @@ The ``build_colorized_logger`` calls the ``setup_logging`` method that builds th
 
    utilities
 
+
+Splunk Publisher
+================
+
+The Splunk Publisher handles sending logs to the configured Splunk server. It was originally inspired from https://github.com/zach-taylor/splunk_handler but after encountering issues within Celery tasks this class was created to maintain a stable logger from inside a Celery task.
+
+.. automodule:: spylunking.log.splunk_publisher
+   :members: SplunkPublisher

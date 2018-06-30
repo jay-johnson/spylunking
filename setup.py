@@ -43,7 +43,6 @@ install_requires = [
     'sphinx',
     'sphinx-autobuild',
     'sphinx_rtd_theme',
-    'splunk_handler',
     'tox',
     'unittest2',
     'mock'
@@ -63,7 +62,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'spylunking'))
 setup(
     name='spylunking',
     cmdclass={'test': PyTest},
-    version='1.0.25',
+    version='1.0.26',
     description=(
         'Spylunking - Drill down into your logs with an integrated, '
         'colorized logger and search tools. Includes a Splunk sandbox '

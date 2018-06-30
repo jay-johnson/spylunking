@@ -287,7 +287,7 @@ Here are python commands to build a colorized, splunk-ready python logger. On st
 
 .. note:: The ``build_colorized_logger`` and ``search`` method also support authentication using a pre-existing ``splunk_token=<token string>`` or by setting a ``SPLUNK_TOKEN`` environment key
 
-::
+.. code-block:: python
 
     python -c '\
         import json;\
@@ -303,7 +303,7 @@ Here are python commands to build a colorized, splunk-ready python logger. On st
         res = sp.search(\
             user="trex",\
             password="123321",\
-            address="localhost:8089",\
+            address="splunkenterprise:8089",\
             query_dict={\
                 "search": "search index=\"antinex\" | head 1"\
             });\
@@ -349,7 +349,7 @@ Here it is from a python shell:
     >>> res = sp.search(
             user='trex',
             password='123321',
-            address="localhost:8089",
+            address="splunkenterprise:8089",
             query_dict={
                 'search': 'search index="antinex" | head 1'
             })
@@ -419,7 +419,7 @@ Simple Logger
 
 Build a simple, no dates colorized logger that prints just the message in colors and does not publish logs to Splunk using:
 
-::
+.. code-block:: python
 
     from spylunking.log.setup_logging import simple_logger
     log = simple_logger()
@@ -431,7 +431,7 @@ No Date Colorized Logger
 
 Build a colorized logger that preserves the parent application name and log level without a date field and does not publish logs to Splunk using:
 
-::
+.. code-block:: python
 
     from spylunking.log.setup_logging import no_date_colors_logger
     log = no_date_colors_logger(name='app-name')
@@ -443,7 +443,7 @@ Test Logger
 
 The test logger is for unittests and does not publish to Splunk.
 
-::
+.. code-block:: python
 
     from spylunking.log.setup_logging import test_logger
     log = test_logger(name='unittest logger')
@@ -455,7 +455,7 @@ Console Logger
 
 The console logger is the same as the ``build_colorized_logger`` which can be created with authenticated Splunk-ready logging using:
 
-::
+.. code-block:: python
 
     from spylunking.log.setup_logging import build_colorized_logger
     log = build_colorized_logger(name='using-a-colorized-logger')
@@ -607,6 +607,7 @@ If the splunk handler is dropping log messages you can use these values to tune 
     export SPLUNK_TIMEOUT="<timeout in seconds per attempt>"
     export SPLUNK_QUEUE_SIZE="<integer value or 0 for infinite>"
     export SPLUNK_FLUSH_INTERVAL="<seconds to flush the queued logs>"
+    export SPLUNK_DEBUG="<debug the Splunk Publisher by setting to 1>"
 
 Testing in a Python Shell
 =========================
@@ -646,7 +647,7 @@ Here is a debugging python shell session for showing some common errors you can 
             query_dict={
                     'search': 'index="antinex" | head 1'
             },
-            address="localhost:8089")
+            address="splunkenterprise:8089")
     2018-06-21 22:18:15,380 - spylunking.search - ERROR - Failed searching splunk response=<?xml version="1.0" encoding="UTF-8"?>
     <response>
     <messages>
@@ -655,13 +656,13 @@ Here is a debugging python shell session for showing some common errors you can 
     </response>
     for query={
         "search": "index=\"antinex\" | head 1"
-    } url=https://localhost:8089/services/search/jobs ex=list index out of range
+    } url=https://splunkenterprise:8089/services/search/jobs ex=list index out of range
     >>> print("now nest the search correctly")
     now nest the search correctly
     >>> res = sp.search(
             user='trex',
             password='123321',
-            address="localhost:8089",
+            address="splunkenterprise:8089",
             query_dict={
                     'search': 'search index="antinex" | head 1'
             })
@@ -801,13 +802,13 @@ Create Token
 
 ::
 
-    curl -k -u admin:changeme https://localhost:8089/servicesNS/admin/splunk_httpinput/data/inputs/http -d name=antinex-token 
+    curl -k -u admin:changeme https://splunkenterprise:8089/servicesNS/admin/splunk_httpinput/data/inputs/http -d name=antinex-token 
 
 List Token
 
 ::
 
-    curl -k -u admin:changeme https://localhost:8089/servicesNS/admin/splunk_httpinput/data/inputs/http
+    curl -k -u admin:changeme https://splunkenterprise:8089/servicesNS/admin/splunk_httpinput/data/inputs/http
 
 Using Splunk CLI
 ================
@@ -816,7 +817,7 @@ List Tokens
 
 ::
 
-    ./bin/splunk http-event-collector list -uri 'https://localhost:8089' -auth 'admin:changeme'
+    ./bin/splunk http-event-collector list -uri 'https://splunkenterprise:8089' -auth 'admin:changeme'
 
 Add Index
 
@@ -832,7 +833,7 @@ Create Token
         http-event-collector create  \
         antinex-token 'antinex logging token'  \
         -index antinex \
-        -uri 'https://localhost:8089' \
+        -uri 'https://splunkenterprise:8089' \
         -auth 'admin:changeme'
 
 Cut and Paste Example
@@ -840,7 +841,7 @@ Cut and Paste Example
 
 Here is a cut and paste example for python 3:
 
-::
+.. code-block:: python
 
     import json
     from spylunking.log.setup_logging import build_colorized_logger
@@ -855,12 +856,12 @@ Here is a cut and paste example for python 3:
     res = sp.search(
         user="trex",
         password="123321",
-        address="localhost:8089",
+        address="splunkenterprise:8089",
         query_dict={
             "search": "search index=\"antinex\" | head 1"
         })
     print("pretty print the first record in the result list")
-    log.critical("found search results={}".format(ppj(json.loads(res["record"]["results"][0]["_raw"]))))'
+    log.critical("found search results={}".format(ppj(json.loads(res["record"]["results"][0]["_raw"]))))
 
 Development
 -----------
