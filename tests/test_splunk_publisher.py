@@ -20,7 +20,7 @@ SPLUNK_SOURCE = 'test_source'
 SPLUNK_SOURCETYPE = 'test_sourcetype'
 SPLUNK_VERIFY = False
 SPLUNK_TIMEOUT = 27
-SPLUNK_FLUSH_INTERVAL = 5.0
+SPLUNK_FLUSH_INTERVAL = 0.0
 SPLUNK_QUEUE_SIZE = 1111
 SPLUNK_DEBUG = False
 SPLUNK_RETRY_COUNT = 1
@@ -105,7 +105,6 @@ class TestSplunkPublisher(unittest.TestCase):
             retry_count=SPLUNK_RETRY_COUNT,
             retry_backoff=SPLUNK_RETRY_BACKOFF,
         )
-        self.splunk.testing = True
         self.post_backup_value = os.getenv(
             'TEST_POST',
             None)
@@ -154,11 +153,10 @@ class TestSplunkPublisher(unittest.TestCase):
         for h in log.handlers:
             log.removeHandler(h)
 
+        self.splunk.shutdown_now = True
         log = logging.getLogger('test')
         log.addHandler(self.splunk)
         log.warning('hello!')
-
-        self.splunk.timer.join()  # Have to wait for the timer to exec
 
         expected_output = {
             'event': 'hello!',
