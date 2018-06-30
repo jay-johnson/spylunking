@@ -1,12 +1,18 @@
+import os
 import logging
 import unittest
 import mock
+import json
 from spylunking.log.splunk_publisher import SplunkPublisher
 
 
 # These are intentionally different than the kwarg defaults
 SPLUNK_HOST = 'splunk-server.example.com'
-SPLUNK_PORT = 1234
+SPLUNK_PORT = 4321
+SPLUNK_COLLECTOR_URL = (
+    "https://{}:{}/services/collector").format(
+        SPLUNK_HOST,
+        SPLUNK_PORT)
 SPLUNK_TOKEN = '851A5E58-4EF1-7291-F947-F614A76ACB21'
 SPLUNK_INDEX = 'test_index'
 SPLUNK_HOSTNAME = 'test_host'
@@ -16,7 +22,7 @@ SPLUNK_VERIFY = False
 SPLUNK_TIMEOUT = 27
 SPLUNK_FLUSH_INTERVAL = 5.0
 SPLUNK_QUEUE_SIZE = 1111
-SPLUNK_DEBUG = True
+SPLUNK_DEBUG = False
 SPLUNK_RETRY_COUNT = 1
 SPLUNK_RETRY_BACKOFF = 0.1
 
@@ -24,6 +30,58 @@ RECEIVER_URL = (
     'https://{}:{}/services/collector').format(
         SPLUNK_HOST,
         SPLUNK_PORT)
+
+
+class MockRequest:
+    """MockRequest"""
+
+    def __init__(
+            self):
+        """__init__"""
+        self.vals = None
+        self.called_raise = False
+    # end of __init
+
+    def raise_for_status(
+            self):
+        """mock_raise"""
+        self.called_raise = True
+        return
+    # end of raise_for_status
+
+# end of MockRequest
+
+
+def mock_post_request(
+        self,
+        url,
+        data=None,
+        headers=None,
+        verify=None,
+        timeout=None):
+    """mock_post_request
+
+    Mock ``requests.Session.post``
+
+    :param url: url
+    :param data: data dictionary
+    :param headers: auth headers
+    :param verify: verifiy
+    :param timeout: timeout
+    """
+
+    req = MockRequest()
+    req.vals = {
+        'url': url,
+        'data': data,
+        'headers': headers,
+        'verify': verify,
+        'timeout': timeout
+    }
+    os.environ['TEST_POST'] = json.dumps(
+        req.vals)
+    return req
+# end of mock_post_request
 
 
 class TestSplunkPublisher(unittest.TestCase):
@@ -48,11 +106,16 @@ class TestSplunkPublisher(unittest.TestCase):
             retry_backoff=SPLUNK_RETRY_BACKOFF,
         )
         self.splunk.testing = True
+        self.post_backup_value = os.getenv(
+            'TEST_POST',
+            None)
     # end of setUp
 
     def tearDown(self):
         """tearDown"""
         self.splunk = None
+        if self.post_backup_value:
+            os.environ['TEST_POST'] = self.post_backup_value
     # end of tearDown
 
     def test_init(self):
@@ -77,9 +140,12 @@ class TestSplunkPublisher(unittest.TestCase):
         self.assertFalse(logging.getLogger('requests').propagate)
     # end of test_init
 
-    @mock.patch('requests.Session.post')
-    def test_splunk_worker(self, mock_request):
-        """test_splunk_worker
+    @mock.patch(
+        ('requests.Session.post'),
+        new=mock_post_request)
+    def test_publish_to_splunk(
+            self):
+        """test_publish_to_splunk
 
         :param mock_request: mock request object
         """
@@ -91,29 +157,44 @@ class TestSplunkPublisher(unittest.TestCase):
         log = logging.getLogger('test')
         log.addHandler(self.splunk)
         log.warning('hello!')
-        for h in log.handlers:
-            print(h)
 
         self.splunk.timer.join()  # Have to wait for the timer to exec
 
-        expected_output = (
-            '{"event": "hello!", "host": "%s", '
-            '"index": "%s", "source": "%s", '
-            '"sourcetype": "%s", "time": null}') % \
-            (
-                SPLUNK_HOSTNAME,
-                SPLUNK_INDEX,
-                SPLUNK_SOURCE,
-                SPLUNK_SOURCETYPE)
-
-        mock_request.assert_called_once_with(
-            RECEIVER_URL,
-            verify=SPLUNK_VERIFY,
-            data=expected_output,
-            timeout=SPLUNK_TIMEOUT,
-            headers={'Authorization': "Splunk {}".format(
-                SPLUNK_TOKEN)},
-        )
-    # end of test_splunk_worker
+        expected_output = {
+            'event': 'hello!',
+            'host': SPLUNK_HOSTNAME,
+            'index': SPLUNK_INDEX,
+            'source': SPLUNK_SOURCE,
+            'sourcetype': SPLUNK_SOURCETYPE
+        }
+        found_env_vals = os.getenv(
+            'TEST_POST',
+            None)
+        requested_vals = json.loads(
+            found_env_vals)
+        self.assertIsNotNone(
+            requested_vals)
+        found_url = requested_vals['url']
+        self.assertEqual(
+            found_url,
+            SPLUNK_COLLECTOR_URL)
+        found_data = json.loads(
+            requested_vals['data'])
+        self.assertEqual(
+            expected_output['event'],
+            found_data['event'])
+        self.assertEqual(
+            expected_output['host'],
+            found_data['host'])
+        self.assertEqual(
+            expected_output['index'],
+            found_data['index'])
+        self.assertEqual(
+            expected_output['source'],
+            found_data['source'])
+        self.assertEqual(
+            expected_output['sourcetype'],
+            found_data['sourcetype'])
+    # end of publish_to_splunk
 
 # end of TestSplunkPublisher

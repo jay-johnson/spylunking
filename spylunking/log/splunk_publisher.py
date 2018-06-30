@@ -128,7 +128,6 @@ class SplunkPublisher(logging.Handler):
         self.session = requests.Session()
         self.retry_count = retry_count
         self.retry_backoff = retry_backoff
-        self.testing = False
 
         self.debug = debug
         if os.getenv(
@@ -270,8 +269,6 @@ class SplunkPublisher(logging.Handler):
             source = self.source
 
         current_time = time.time()
-        if self.testing:
-            current_time = None
 
         params = {
             'time': current_time,
@@ -290,7 +287,9 @@ class SplunkPublisher(logging.Handler):
         return formatted_record
     # end of format_record
 
-    def publish_to_splunk(self, payload=None):
+    def publish_to_splunk(
+            self,
+            payload=None):
         """publish_to_splunk
 
 
@@ -312,8 +311,12 @@ class SplunkPublisher(logging.Handler):
             payload = self.log_payload
 
         if payload:
-            self.write_debug_log('Payload available for sending')
-            url = 'https://%s:%s/services/collector' % (self.host, self.port)
+            self.write_debug_log(
+                'Payload available for sending')
+
+            url = 'https://{}:{}/services/collector'.format(
+                self.host,
+                self.port)
             self.write_debug_log('Destination URL is ' + url)
 
             try:
@@ -322,11 +325,15 @@ class SplunkPublisher(logging.Handler):
                 r = self.session.post(
                     url,
                     data=payload,
-                    headers={'Authorization': 'Splunk %s' % self.token},
+                    headers={
+                        'Authorization': 'Splunk {}'.format(
+                            self.token)
+                    },
                     verify=self.verify,
-                    timeout=self.timeout,
+                    timeout=self.timeout
                 )
-                r.raise_for_status()  # Throws exception for 4xx/5xx status
+                # Throws exception for 4xx/5xx status
+                r.raise_for_status()
                 self.write_debug_log('Payload sent successfully')
 
             except Exception as e:
