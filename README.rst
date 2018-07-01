@@ -50,39 +50,6 @@ Getting Started
 
        ./run-splunk-in-docker.sh 
 
-Publishing Logs to Splunk using the Spylunking Logger
------------------------------------------------------
-
-Here is a video showing how to use the Spylunking logger from a python shell:
-
-.. raw:: html
-
-    <a href="https://asciinema.org/a/189526?autoplay=1" target="_blank"><img src="https://asciinema.org/a/189526.png"/></a>
-
-Here is the code from the asciinema video above:
-
-.. code-block:: python
-
-    import json
-    from spylunking.log.setup_logging import build_colorized_logger
-    import spylunking.search as sp
-    from spylunking.ppj import ppj
-    print("build the logger")
-    log = build_colorized_logger(
-        name="spylunking-in-a-shell",
-        splunk_user="trex",
-        splunk_password="123321")
-    print("import the search wrapper")
-    res = sp.search(
-        user="trex",
-        password="123321",
-        address="splunkenterprise:8089",
-        query_dict={
-            "search": "search index=\"antinex\" | head 1"
-        })
-    print("pretty print the first record in the result list")
-    log.critical("found search results={}".format(ppj(json.loads(res["record"]["results"][0]["_raw"]))))
-
 Get a Splunk User Token
 -----------------------
 
