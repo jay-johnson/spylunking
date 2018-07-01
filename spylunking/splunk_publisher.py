@@ -1,23 +1,11 @@
 """
-Publish to Splunk using a ``multiprocessing.Process`` worker
-
 Including a handler derived from the original repository:
 https://github.com/zach-taylor/splunk_handler
 
 This version was built to fix issues seen
 with multiple Celery worker processes.
-
-Supported environment variables:
-
-::
-
-    export SPLUNK_SLEEP_INTERVAL=<block getting a message>
-    export SPLUNK_DEBUG=<1 enable debug|0 off>
-    export SPLUNK_DAEMON=<1 - turn on multiprocessing daemon|0 off>
-
 """
 import os
-import sys
 import atexit
 import json
 import logging
@@ -26,21 +14,16 @@ import time
 import traceback
 import multiprocessing
 import requests
-import signal
-from spylunking.ppj import ppj
+from threading import Timer
 from requests.packages.urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
 
-is_py2 = sys.version[0] == '2'
-if is_py2:
-    import Queue as queue
-else:
-    import queue as queue
 
-
+# For keeping track of running class instances
 instances = []
 
 
+# Called when application exit imminent (main thread ended / got kill signal)
 @atexit.register
 def perform_exit():
     """perform_exit
@@ -54,50 +37,44 @@ def perform_exit():
     Celery and single processes.
 
     """
-    if os.getenv(
-            'SPLUNK_DEBUG',
-            '0') == '1':
-        print('------------------------------------')
-        print('Spylunking @aexit.register - start')
-
-    for i in instances:
+    worked = True
+    for instance in instances:
         try:
-            if os.getenv(
-                    'SPLUNK_DEBUG',
-                    '0') == '1':
-                print(' - shutting down instance={}'.format(
-                    i))
-            for p in i.processes:
-                p.terminate()
-        except Exception as e:
-            if os.getenv(
-                    'SPLUNK_DEBUG',
-                    '0') == '1':
-                print((
-                    'Failed exiting instance with ex={}').format(
-                        e))
-        # try/ex
-    # for all instances
-
-    if os.getenv(
-            'SPLUNK_DEBUG',
-            '0') == '1':
-        print('Spylunking @aexit.register - done')
-        print('------------------------------------')
+            instance.shutdown()
+        except Exception:
+            worked = False
+    if not worked:
+        if os.getenv(
+                'SPLUNK_DEBUG',
+                '0') == '1':
+            print('Failed exiting')
 # end of perform_exit
+
+
+def force_flush():
+    """force_flush"""
+    worked = True
+    for instance in instances:
+        try:
+            instance.force_flush()
+        except Exception:
+            worked = False
+    if not worked:
+        if os.getenv(
+                'SPLUNK_DEBUG',
+                '0') == '1':
+            print('Failed flushing queues')
+# end of force_flush
 
 
 class SplunkPublisher(logging.Handler):
     """
     A logging handler to send logs to a Splunk Enterprise instance
     running the Splunk HTTP Event Collector.
-
     Originally inspired from the repository:
     https://github.com/zach-taylor/splunk_handler
-
     This class allows multiple processes like Celery workers
     to reliably publish logs to Splunk from inside of a Celery task
-
     """
 
     def __init__(
@@ -111,16 +88,13 @@ class SplunkPublisher(logging.Handler):
             sourcetype='text',
             verify=True,
             timeout=60,
-            sleep_interval=None,
+            flush_interval=2.0,
             queue_size=0,
             debug=False,
             retry_count=20,
-            run_once=False,
             retry_backoff=2.0):
         """__init__
-
         Initialize the SplunkPublisher
-
         :param host: Splunk fqdn
         :param port: Splunk HEC Port 8088
         :param token: Pre-existing Splunk token
@@ -130,21 +104,16 @@ class SplunkPublisher(logging.Handler):
         :param sourcetype: json
         :param verify: verify using certs
         :param timeout: HTTP request timeout in seconds
-        :param sleep_interval: Sleep before purging queued
-                               logs interval in seconds
-        :param queue_size: Queue this number of logs
-                           before dropping new logs with
-                           0 is an infinite number of messages
+        :param flush_interval: Flush the queue of logs interval in seconds
+        :param queue_size: Queue this number of logs before dropping
+                           new logs with 0 is an infinite number of messages
         :param debug: debug the publisher
         :param retry_count: number of publish retries per log record
         :param retry_backoff: cooldown timer in seconds
-        :param run_once: flag used by tests for publishing once
-                         and shutting down
         """
 
         global instances
         instances.append(self)
-
         logging.Handler.__init__(self)
 
         self.host = host
@@ -155,24 +124,15 @@ class SplunkPublisher(logging.Handler):
         self.sourcetype = sourcetype
         self.verify = verify
         self.timeout = timeout
-        self.sleep_interval = sleep_interval
-        if self.sleep_interval is None:
-            self.sleep_interval = float(os.getenv(
-                'SPLUNK_SLEEP_INTERVAL',
-                '30.0'))
+        self.flush_interval = flush_interval
         self.log_payload = ''
-
+        self.timer = None
+        self.manager = multiprocessing.Manager()
+        self.queue = self.manager.Queue()
         self.session = requests.Session()
         self.retry_count = retry_count
         self.retry_backoff = retry_backoff
-        self.num_sent = 0
-
-        # Multiprocesing entities
-        self.run_once = run_once
-        self.processes = []
-        self.manager = multiprocessing.Manager()
-        self.queue = self.manager.Queue()
-        self.exit = multiprocessing.Event()
+        self.testing = False
 
         self.debug = debug
         if os.getenv(
@@ -181,16 +141,16 @@ class SplunkPublisher(logging.Handler):
             self.debug = True
 
         # 'True' if application requested exit
-        self.shutdown_now = False
+        self.SIGTERM = False
 
-        self.debug_log('starting debug mode')
+        self.write_debug_log('Starting debug mode')
 
         if hostname is None:
             self.hostname = socket.gethostname()
         else:
             self.hostname = hostname
 
-        self.debug_log('preparing to override loggers')
+        self.write_debug_log('Preparing to override loggers')
 
         # prevent infinite recursion by silencing requests and urllib3 loggers
         logging.getLogger('requests').propagate = False
@@ -204,129 +164,103 @@ class SplunkPublisher(logging.Handler):
             requests.packages.urllib3.disable_warnings()
 
         # Set up automatic retry with back-off
-        self.debug_log('preparing to create a Requests session')
-        retry = Retry(
-            total=self.retry_count,
-            backoff_factor=self.retry_backoff,
-            method_whitelist=False,  # Retry for any HTTP verb
-            status_forcelist=[500, 502, 503, 504])
+        self.write_debug_log('Preparing to create a Requests session')
+        retry = Retry(total=self.retry_count,
+                      backoff_factor=self.retry_backoff,
+                      method_whitelist=False,  # Retry for any HTTP verb
+                      status_forcelist=[500, 502, 503, 504])
         self.session.mount('https://', HTTPAdapter(max_retries=retry))
 
-        self.start_worker()
+        self.start_worker_thread()
 
-        self.debug_log('class initialize complete')
+        self.write_debug_log('Class initialize complete')
     # end of __init__
 
     def emit(
             self,
             record):
         """emit
-
         Emit handler for queue-ing message for
-        the helper thread to send to Splunk on the ``self.sleep_interval``
-
+        the helper thread to send to Splunk on the ``flush_interval``
         :param record: LogRecord to send to Splunk
                        https://docs.python.org/3/library/logging.html
         """
-        self.debug_log('emit - start')
+        self.write_debug_log('emit() called')
 
         try:
             record = self.format_record(
                 record)
         except Exception as e:
             self.write_log(
-                'exception in Splunk logging handler: %s' % str(e))
+                'Exception in Splunk logging handler: %s' % str(e))
             self.write_log(
                 traceback.format_exc())
             return
 
-        if not self.is_shutting_down() and self.sleep_interval > 0.1:
+        if self.flush_interval > 0:
             try:
-                self.debug_log(
-                    'writing record to log queue')
+                self.write_debug_log('Writing record to log queue')
                 # Put log message into queue; worker thread will pick up
-                self.queue.put(
+                self.queue.put_nowait(
                     record)
             except Exception as e:
                 self.write_log(
-                    'log queue full; log data will be dropped.')
+                    'Log queue full; log data will be dropped.')
         else:
-            # Flush log immediately; this is a blocking call
+            # Flush log immediately; is blocking call
             self.publish_to_splunk(
                 payload=record)
-
-        self.debug_log('emit - done')
     # end of emit
 
     def close(self):
         """close"""
-        self.debug_log(
-            'close - start shutdown')
         self.shutdown()
         logging.Handler.close(self)
-        self.debug_log(
-            'close - handler join on processes={}'.format(
-                len(self.processes)))
-        for process in self.processes:
-            process.join()
-        self.debug_log(
-            'close - done')
     # end of close
 
-    def start_worker(
+    def start_worker_thread(
             self):
-        """start_worker
-
-        Start the helper worker process to package queued messages
-        and send them to Splunk
+        """start_worker_thread
+        Start the helper worker thread to publish queued messages
+        to Splunk
         """
         # Start a worker thread responsible for sending logs
-        if not self.is_shutting_down() and self.sleep_interval > 0.1:
-            self.processes = []
-            self.debug_log(
-                'start_worker - start multiprocessing.Process')
-            p = multiprocessing.Process(
-                target=self.perform_work)
-            self.processes.append(p)
-            if os.getenv(
-                    'SPLUNK_DAEMON',
-                    False):
-                p.daemon = True
-            p.start()
-            self.debug_log(
-                'start_worker - done')
-    # end of start_worker
+        if self.flush_interval > 0:
+            self.write_debug_log(
+                'Preparing to spin off first worker thread Timer')
+            self.timer = Timer(
+                self.flush_interval,
+                self.publish_to_splunk)
+            self.timer.daemon = True  # Auto-kill thread if main process exits
+            self.timer.start()
+    # end of start_worker_thread
 
     def write_log(
             self,
             log_message):
         """write_log
-
         :param log_message: message to log
         """
-        print('splunk-pub {}'.format(log_message))
+        print('[SplunkPub] {}'.format(log_message))
     # end of write_log
 
-    def debug_log(
+    def write_debug_log(
             self,
             log_message):
-        """debug_log
-
+        """write_debug_log
         :param log_message: message to log
         """
         if self.debug:
-            print('splunk-pub DEBUG {}'.format(log_message))
-    # end of debug_log
+            print('[SplunkPub] DEBUG {}'.format(log_message))
+    # end of write_debug_log
 
     def format_record(
             self,
             record):
         """format_record
-
         :param record: message to format
         """
-        self.debug_log(
-            'format_record - start')
+        self.write_debug_log('format_record() called')
 
         if self.source is None:
             source = record.pathname
@@ -334,6 +268,8 @@ class SplunkPublisher(logging.Handler):
             source = self.source
 
         current_time = time.time()
+        if self.testing:
+            current_time = None
 
         params = {
             'time': current_time,
@@ -344,148 +280,49 @@ class SplunkPublisher(logging.Handler):
             'event': self.format(record),
         }
 
-        self.debug_log(
-            'record dictionary created')
+        self.write_debug_log('Record dictionary created')
 
-        formatted_record = json.dumps(
-            params,
-            sort_keys=True)
-
-        self.debug_log(
-            'format_record - done')
+        formatted_record = json.dumps(params, sort_keys=True)
+        self.write_debug_log('Record formatting complete')
 
         return formatted_record
     # end of format_record
 
-    def perform_work(
-            self):
-        """perform_work
-
-        Process handler function for processing messages
-        found in the ``multiprocessing.Manager.queue``
-
+    def publish_to_splunk(self, payload=None):
+        """publish_to_splunk
         Build the ``self.log_payload`` from the queued log messages
         and POST it to the Splunk endpoint
-
+        :param payload: string message to send to Splunk
         """
+        self.write_debug_log('publish_to_splunk() called')
 
-        self.debug_log((
-            'perform_work - start'))
+        if self.flush_interval > 0:
+            # Stop the timer. Happens automatically if this is called
+            # via the timer, does not if invoked by force_flush()
+            self.timer.cancel()
 
-        # Handle CTRL + C
-        signal.signal(
-            signal.SIGINT,
-            signal.SIG_IGN)
+            queue_is_empty = self.empty_queue()
 
-        self.debug_log((
-            'perform_work - ready'))
+        if not payload:
+            payload = self.log_payload
 
-        try:
-
-            not_done = not self.is_shutting_down()
-
-            while not_done:
-
-                try:
-                    self.build_payload_from_queued_messages()
-                except Exception as e:
-                    if self.is_shutting_down():
-                        self.debug_log(
-                            'perform_work - done - detected shutdown')
-                    else:
-                        self.write_log((
-                            'perform_work - done - Exception in '
-                            'shutting down for ex={}').format(
-                                e))
-                        self.shutdown()
-                    return
-                # end of try to return if the queue
-
-                self.publish_to_splunk()
-
-                if self.is_shutting_down():
-                    self.debug_log(
-                        'perform_work - done - shutdown detected')
-                    return
-                # check if done
-
-                self.num_sent = 0
-            # end of while not done
-
-        except Exception as e:
-            if self.is_shutting_down():
-                self.debug_log((
-                    'perform_work - shutdown sent={}').format(
-                        self.num_sent))
-            else:
-                self.debug_log((
-                    'perform_work - ex={}').format(
-                        e))
-        # end of try/ex
-
-        self.debug_log((
-            'perform_work - done'))
-
-    # end of perform_work
-
-    def publish_to_splunk(
-            self,
-            payload=None):
-        """publish_to_splunk
-
-        :param payload: optional string log message to send to Splunk
-        """
-
-        self.debug_log((
-            'publish_to_splunk - start'))
-
-        use_payload = payload
-        if not use_payload:
-            use_payload = self.log_payload
-
-        if use_payload:
-            self.debug_log(
-                'payload available for sending')
-
-            url = 'https://{}:{}/services/collector'.format(
-                self.host,
-                self.port)
-            self.debug_log(
-                'destination URL={}'.format(
-                    url))
+        if payload:
+            self.write_debug_log('Payload available for sending')
+            url = 'https://%s:%s/services/collector' % (self.host, self.port)
+            self.write_debug_log('Destination URL is ' + url)
 
             try:
-                if self.debug:
-                    try:
-                        msg_dict = json.loads(use_payload)
-                        event_data = json.loads(msg_dict['event'])
-                        msg_dict['event'] = event_data
-                        self.debug_log((
-                            'sending payload: {}').format(
-                                ppj(msg_dict)))
-                    except Exception:
-                        self.debug_log((
-                            'sending data payload: {}').format(
-                                use_payload))
-
-                if self.num_sent > 100000:
-                    self.num_sent = 0
-                else:
-                    self.num_sent += 1
+                self.write_debug_log(
+                    'Sending payload: ' + payload)
                 r = self.session.post(
                     url,
-                    data=use_payload,
-                    headers={
-                        'Authorization': 'Splunk {}'.format(
-                            self.token)
-                    },
+                    data=payload,
+                    headers={'Authorization': 'Splunk %s' % self.token},
                     verify=self.verify,
-                    timeout=self.timeout
+                    timeout=self.timeout,
                 )
-                # Throws exception for 4xx/5xx status
-                r.raise_for_status()
-                self.debug_log(
-                    'payload sent successfully')
+                r.raise_for_status()  # Throws exception for 4xx/5xx status
+                self.write_debug_log('Payload sent successfully')
 
             except Exception as e:
                 try:
@@ -494,125 +331,94 @@ class SplunkPublisher(logging.Handler):
                             e))
                     self.write_log(traceback.format_exc())
                 except Exception:
-                    self.debug_log(
+                    self.write_debug_log(
                         'Exception encountered,'
                         'but traceback could not be formatted')
 
             self.log_payload = ''
-        # end of publish handling
+        else:
+            self.write_debug_log(
+                'Timer thread executed but no payload was available to send')
 
-        self.debug_log((
-            'publish_to_splunk - done - '
-            'self.is_shutting_down={} self.shutdown_now={}').format(
-                self.is_shutting_down(),
-                self.shutdown_now))
+        # Restart the timer
+        if self.flush_interval > 0:
+            timer_interval = self.flush_interval
+            if self.SIGTERM:
+                self.write_debug_log(
+                    'Timer reset aborted due to SIGTERM received')
+            else:
+                if not queue_is_empty:
+                    self.write_debug_log(
+                        'Queue not empty, scheduling timer to run immediately')
+                    # Start up again right away if queue was not cleared
+                    timer_interval = 1.0
+
+                self.write_debug_log('Resetting timer thread')
+                self.timer = Timer(timer_interval, self.publish_to_splunk)
+                # Auto-kill thread if main process exits
+                self.timer.daemon = True
+                self.timer.start()
+                self.write_debug_log('Timer thread scheduled')
     # end of publish_to_splunk
 
-    def build_payload_from_queued_messages(
+    def empty_queue(
             self):
-        """build_payload_from_queued_messages
-
+        """empty_queue
         Empty the queued messages by building a large ``self.log_payload``
         """
-        not_done = True
-        while not_done:
-
-            if self.is_shutting_down():
-                self.debug_log(
-                    'build_payload shutting down')
-                return True
-
-            self.debug_log('reading from queue')
+        while not self.queue.empty():
+            self.write_debug_log('Recursing through queue')
             try:
-                msg = self.queue.get(
-                    block=True,
-                    timeout=None)
-                self.log_payload = self.log_payload + msg
-                if self.debug:
-                    self.debug_log('got queued message={}'.format(
-                        msg))
-                not_done = not self.queue.empty()
-            except queue.Empty:
-                self.debug_log((
-                    'done emptying queue'))
-                return True
+                item = self.queue.get(block=False)
+                self.log_payload = self.log_payload + item
+                self.queue.task_done()
+                self.write_debug_log('Queue task completed')
             except Exception as e:
-                if self.is_shutting_down():
-                    self.debug_log(
-                        'helper was shut down '
-                        'msgs in the queue may not all '
-                        'have been sent')
-                else:
-                    self.debug_log((
-                        'helper hit an ex={} shutting down '
-                        'msgs in the queue may not all '
-                        'have been sent').format(
-                            e))
-                    not_done = True
-                    self.shutdown_now = True
-                return True
-            # end of getting log msgs from the queue
-
-            if self.is_shutting_down():
-                self.debug_log(
-                    'build_payload - already shutting down')
-                return True
+                self.write_debug_log((
+                    'Error - Queue get hit ex={} '
+                    'empty').format(
+                        e))
 
             # If the payload is getting very long,
             # stop reading and send immediately.
             # Current limit is 50MB
-            if self.is_shutting_down() or len(self.log_payload) >= 524288:
-                self.debug_log(
-                    'payload maximum size exceeded, sending immediately')
+            if not self.SIGTERM and len(self.log_payload) >= 524288:
+                self.write_debug_log(
+                    'Payload maximum size exceeded, sending immediately')
                 return False
 
         return True
-    # end of build_payload_from_queued_messages
+    # end of empty_queue
 
     def force_flush(
             self):
         """force_flush
-
         Flush the queue and publish everything to Splunk
         """
-        self.debug_log('force flush requested')
+        self.write_debug_log('Force flush requested')
         self.publish_to_splunk()
     # end of force_flush
 
-    def is_shutting_down(
-            self):
-        """is_shutting_down"""
-        return self.exit.is_set() or self.shutdown_now or self.run_once
-    # end of is_shutting_down
-
     def shutdown(
             self):
-        """shutdown
-        """
+        """shutdown"""
+        self.write_debug_log('Immediate shutdown requested')
 
         # Only initiate shutdown once
-        if self.is_shutting_down():
-            self.debug_log('shutdown - still shutting down')
+        if self.SIGTERM:
             return
-        else:
-            self.debug_log('shutdown - start')
-            self.exit.set()
-        # if/else already shutting down
 
-        self.debug_log('shutdown - setting shutdown_now=True')
-        self.shutdown_now = True
+        self.write_debug_log('Setting instance SIGTERM=True')
+        self.SIGTERM = True
 
-        self.debug_log(
-            'shutdown - trying to publish remaining msgs')
+        if self.flush_interval > 0:
+            # Cancels the scheduled Timer, allows exit immediately
+            self.timer.cancel()
 
+        self.write_debug_log(
+            'Starting up the final run of the worker thread before shutdown')
         # Send the remaining items that might be sitting in queue.
         self.publish_to_splunk()
-        self.debug_log('shutdown - joining')
-
-        for p in self.processes:
-            p.join()
-
-        self.debug_log('shutdown - done')
     # end of shutdown
 
 # end of SplunkPublisher

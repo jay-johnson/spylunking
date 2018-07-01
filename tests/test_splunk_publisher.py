@@ -22,7 +22,7 @@ SPLUNK_SOURCE = 'test_source'
 SPLUNK_SOURCETYPE = 'test_sourcetype'
 SPLUNK_VERIFY = False
 SPLUNK_TIMEOUT = 27
-SPLUNK_SLEEP_INTERVAL = 0.0
+SPLUNK_FLUSH_INTERVAL = 0.0
 SPLUNK_QUEUE_SIZE = 1111
 SPLUNK_DEBUG = False
 SPLUNK_RETRY_COUNT = 1
@@ -51,12 +51,11 @@ class TestSplunkPublisher(unittest.TestCase):
             sourcetype=SPLUNK_SOURCETYPE,
             verify=SPLUNK_VERIFY,
             timeout=SPLUNK_TIMEOUT,
-            sleep_interval=SPLUNK_SLEEP_INTERVAL,
+            flush_interval=SPLUNK_FLUSH_INTERVAL,
             queue_size=SPLUNK_QUEUE_SIZE,
             debug=SPLUNK_DEBUG,
             retry_count=SPLUNK_RETRY_COUNT,
-            retry_backoff=SPLUNK_RETRY_BACKOFF,
-            run_once=True
+            retry_backoff=SPLUNK_RETRY_BACKOFF
         )
         self.org_value = os.getenv(
             'TEST_POST',
@@ -86,7 +85,7 @@ class TestSplunkPublisher(unittest.TestCase):
         self.assertEqual(self.splunk.sourcetype, SPLUNK_SOURCETYPE)
         self.assertEqual(self.splunk.verify, SPLUNK_VERIFY)
         self.assertEqual(self.splunk.timeout, SPLUNK_TIMEOUT)
-        self.assertEqual(self.splunk.sleep_interval, SPLUNK_SLEEP_INTERVAL)
+        self.assertEqual(self.splunk.flush_interval, SPLUNK_FLUSH_INTERVAL)
         self.assertEqual(self.splunk.retry_count, SPLUNK_RETRY_COUNT)
         self.assertEqual(self.splunk.retry_backoff, SPLUNK_RETRY_BACKOFF)
         self.assertIsNotNone(self.splunk.debug)

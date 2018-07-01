@@ -21,7 +21,7 @@ def run_main():
         # splunk_token='55df5127-cb0e-4182-932e-c71c454699b8',
         splunk_debug=False)
 
-    max_recs = 100
+    max_recs = 1
     msg_sent = 0
     not_done = True
     while not_done:
