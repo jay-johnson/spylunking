@@ -590,6 +590,28 @@ Export this variable before creating a logger.
 
     export SPLUNK_DEBUG=1
 
+Available Environment Variables
+-------------------------------
+
+::
+
+    export SPLUNK_HOST="<splunk host>"
+    export SPLUNK_PORT="<splunk port: 8088>"
+    export SPLUNK_API_PORT="<splunk port: 8089>"
+    export SPLUNK_ADDRESS="<splunk address host:port>"
+    export SPLUNK_API_ADDRESS="<splunk api address host:port>"
+    export SPLUNK_TOKEN="<splunk token>"
+    export SPLUNK_INDEX="<splunk index>"
+    export SPLUNK_SOURCE="<splunk source>"
+    export SPLUNK_SOURCETYPE="<splunk sourcetype>"
+    export SPLUNK_VERIFY="<verify certs on HTTP POST>"
+    export SPLUNK_TIMEOUT="<timeout in seconds>"
+    export SPLUNK_QUEUE_SIZE="<num msgs allowed in queue - 0=infinite>"
+    export SPLUNK_SLEEP_INTERVAL="<sleep in seconds per batch>"
+    export SPLUNK_RETRY_COUNT="<attempts per log to retry publishing>"
+    export SPLUNK_RETRY_BACKOFF="<cooldown in seconds per failed POST>"
+    export SPLUNK_DEBUG="<1 enable debug|0 off>"
+
 Login to Splunk from a Browser
 ------------------------------
 
