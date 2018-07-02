@@ -10,7 +10,10 @@ Available environment variables:
 ::
 
     export SPLUNK_HOST="<splunk host>"
-    export SPLUNK_PORT="<splunk port>"
+    export SPLUNK_PORT="<splunk port: 8088>"
+    export SPLUNK_API_PORT="<splunk port: 8089>"
+    export SPLUNK_ADDRESS="<splunk address host:port>"
+    export SPLUNK_API_ADDRESS="<splunk api address host:port>"
     export SPLUNK_TOKEN="<splunk token>"
     export SPLUNK_INDEX="<splunk index>"
     export SPLUNK_SOURCE="<splunk source>"
@@ -25,7 +28,7 @@ Available environment variables:
 
 """
 
-import os
+import sys
 import atexit
 import json
 import logging
@@ -37,9 +40,28 @@ import requests
 import spylunking.send_to_splunk as send_to_splunk
 from threading import Timer
 from spylunking.ppj import ppj
+from spylunking.consts import SPLUNK_HOST
+from spylunking.consts import SPLUNK_PORT
+from spylunking.consts import SPLUNK_TOKEN
+from spylunking.consts import SPLUNK_INDEX
+from spylunking.consts import SPLUNK_SOURCE
+from spylunking.consts import SPLUNK_SOURCETYPE
+from spylunking.consts import SPLUNK_VERIFY
+from spylunking.consts import SPLUNK_TIMEOUT
+from spylunking.consts import SPLUNK_SLEEP_INTERVAL
+from spylunking.consts import SPLUNK_RETRY_COUNT
+from spylunking.consts import SPLUNK_RETRY_BACKOFF
+from spylunking.consts import SPLUNK_QUEUE_SIZE
+from spylunking.consts import SPLUNK_DEBUG
 from requests.packages.urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
 
+
+is_py2 = sys.version[0] == '2'
+if is_py2:
+    from Queue import Queue  # noqa
+else:
+    from queue import Queue  # noqa
 
 # For keeping track of running class instances
 instances = []
@@ -59,30 +81,22 @@ def perform_exit():
     Celery and single processes.
 
     """
-    if os.getenv(
-            'SPLUNK_DEBUG',
-            '0').strip() == '1':
+    if SPLUNK_DEBUG:
         print('-------------------------------')
         print('splunkpub: atexit.register - start')
     worked = True
     for instance in instances:
         try:
-            if os.getenv(
-                    'SPLUNK_DEBUG',
-                    '0').strip() == '1':
+            if SPLUNK_DEBUG:
                 print(' - shutting down instance={} - start'.format(
                     instance))
             instance.shutdown()
-            if os.getenv(
-                    'SPLUNK_DEBUG',
-                    '0').strip() == '1':
+            if SPLUNK_DEBUG:
                 print(' - shutting down instance={} - done'.format(
                     instance))
         except Exception as e:
             worked = False
-            if os.getenv(
-                    'SPLUNK_DEBUG',
-                    '0').strip() == '1':
+            if SPLUNK_DEBUG:
                 print(
                     ' - shutting down instance={} '
                     '- hit ex={} during shutdown'.format(
@@ -90,13 +104,9 @@ def perform_exit():
                         e))
         # end of try/ex
     if not worked:
-        if os.getenv(
-                'SPLUNK_DEBUG',
-                '0') == '1':
+        if SPLUNK_DEBUG:
             print('Failed exiting')
-    if os.getenv(
-            'SPLUNK_DEBUG',
-            '0').strip() == '1':
+    if SPLUNK_DEBUG:
         print('splunkpub: atexit.register - done')
         print('-------------------------------')
 # end of perform_exit
@@ -104,9 +114,7 @@ def perform_exit():
 
 def force_flush():
     """force_flush"""
-    if os.getenv(
-            'SPLUNK_DEBUG',
-            '0').strip() == '1':
+    if SPLUNK_DEBUG:
         print('-------------------------------')
         print('splunkpub: force_flush - start')
     worked = True
@@ -115,9 +123,7 @@ def force_flush():
             instance.force_flush()
         except Exception as e:
             worked = False
-            if os.getenv(
-                    'SPLUNK_DEBUG',
-                    '0').strip() == '1':
+            if SPLUNK_DEBUG:
                 print(
                     ' - force_flush instance={} '
                     '- hit ex={}'.format(
@@ -125,13 +131,9 @@ def force_flush():
                         e))
         # end of try/ex
     if not worked:
-        if os.getenv(
-                'SPLUNK_DEBUG',
-                '0') == '1':
+        if SPLUNK_DEBUG:
             print('Failed flushing queues')
-    if os.getenv(
-            'SPLUNK_DEBUG',
-            '0').strip() == '1':
+    if SPLUNK_DEBUG:
         print('splunkpub: force_flush - done')
         print('-------------------------------')
 # end of force_flush
@@ -151,6 +153,7 @@ class SplunkPublisher(logging.Handler):
             self,
             host=None,
             port=None,
+            address=None,
             token=None,
             index=None,
             hostname=None,
@@ -170,6 +173,7 @@ class SplunkPublisher(logging.Handler):
 
         :param host: Splunk fqdn
         :param port: Splunk HEC Port 8088
+        :param address: Splunk fqdn:8088 - overrides host and port
         :param token: Pre-existing Splunk token
         :param index: Splunk index
         :param hostname: Splunk address <host:port>
@@ -192,64 +196,44 @@ class SplunkPublisher(logging.Handler):
 
         self.host = host
         if self.host is None:
-            self.host = os.getenv(
-                'SPLUNK_HOST',
-                'splunkenterprise').strip()
+            self.host = SPLUNK_HOST
         self.port = port
         if self.port is None:
-            self.port = int(os.getenv(
-                'SPLUNK_PORT',
-                '8088').strip())
+            self.port = SPLUNK_PORT
+        if address:
+            address_split = address.split(':')
+            self.host = address_split[0]
+            self.port = int(address_split[1])
         self.token = token
         if self.token is None:
-            self.token = os.getenv(
-                'SPLUNK_TOKEN',
-                'no-token-set').strip()
+            self.token = SPLUNK_TOKEN
         self.index = index
         if self.index is None:
-            self.index = os.getenv(
-                'SPLUNK_INDEX',
-                'no-index-set').strip()
+            self.index = SPLUNK_INDEX
         self.source = source
         if self.source is None:
-            self.source = os.getenv(
-                'SPLUNK_SOURCE',
-                '').strip()
+            self.source = SPLUNK_SOURCE
         self.sourcetype = sourcetype
         if self.sourcetype is None:
-            self.sourcetype = os.getenv(
-                'SPLUNK_SOURCETYPE',
-                'json').strip()
+            self.sourcetype = SPLUNK_SOURCETYPE
         self.verify = verify
         if self.verify is None:
-            self.verify = bool(os.getenv(
-                'SPLUNK_VERIFY',
-                '0').strip() == '1')
+            self.verify = SPLUNK_VERIFY
         self.timeout = timeout
         if self.timeout is None:
-            self.timeout = float(os.getenv(
-                'SPLUNK_TIMEOUT',
-                '10.0').strip())
+            self.timeout = SPLUNK_TIMEOUT
         self.sleep_interval = sleep_interval
         if self.sleep_interval is None:
-            self.sleep_interval = float(os.getenv(
-                'SPLUNK_SLEEP_INTERVAL',
-                '30.0').strip())
+            self.sleep_interval = SPLUNK_SLEEP_INTERVAL
         self.retry_count = retry_count
         if self.retry_count is None:
-            self.retry_count = int(os.getenv(
-                'SPLUNK_RETRY_COUNT',
-                '10').strip())
+            self.retry_count = SPLUNK_RETRY_COUNT
         self.retry_backoff = retry_backoff
         if self.retry_backoff is None:
-            self.retry_backoff = int(os.getenv(
-                'SPLUNK_RETRY_BACKOFF',
-                '2.0').strip())
+            self.retry_backoff = SPLUNK_RETRY_BACKOFF
         self.queue_size = queue_size
         if self.queue_size is None:
-            self.queue_size = int(os.getenv(
-                'SPLUNK_QUEUE_SIZE',
-                '0').strip())
+            self.queue_size = SPLUNK_QUEUE_SIZE
 
         self.log_payload = ''
 
@@ -265,9 +249,7 @@ class SplunkPublisher(logging.Handler):
         self.run_once = run_once
 
         self.debug = debug
-        if os.getenv(
-                'SPLUNK_DEBUG',
-                '0') == '1':
+        if SPLUNK_DEBUG:
             self.debug = True
 
         self.debug_log('starting debug mode')
@@ -299,7 +281,8 @@ class SplunkPublisher(logging.Handler):
             status_forcelist=[500, 502, 503, 504])
         self.session.mount('https://', HTTPAdapter(max_retries=retry))
 
-        self.start_worker_thread()
+        self.start_worker_thread(
+            sleep_interval=self.sleep_interval)
 
         self.debug_log((
             'class init - '
@@ -347,18 +330,22 @@ class SplunkPublisher(logging.Handler):
     # end of emit
 
     def start_worker_thread(
-            self):
+            self,
+            sleep_interval=1.0):
         """start_worker_thread
+
         Start the helper worker thread to publish queued messages
         to Splunk
 
+        :param sleep_interval: sleep in seconds before reading from
+                               the queue again
         """
         # Start a worker thread responsible for sending logs
         if self.sleep_interval > 0:
             self.debug_log(
-                'preparing to spin off first worker thread Timer')
+                'starting worker thread')
             self.timer = Timer(
-                self.sleep_interval,
+                sleep_interval,
                 self.perform_work)
             self.timer.daemon = True  # Auto-kill thread if main process exits
             self.timer.start()
@@ -464,7 +451,7 @@ class SplunkPublisher(logging.Handler):
                 self.log_payload = self.log_payload + msg
                 if self.debug:
                     self.debug_log('got queued message={}'.format(
-                        msg))
+                        ppj(msg)))
                 not_done = not self.queue_empty(
                     use_queue=use_queue)
             except Exception as e:
@@ -474,15 +461,10 @@ class SplunkPublisher(logging.Handler):
                         'helper was shut down '
                         'msgs in the queue may not all '
                         'have been sent')
-                else:
-                    self.debug_log((
-                        'helper hit an ex={} shutting down '
-                        'msgs in the queue may not all '
-                        'have been sent').format(
-                            e))
-                    not_done = True
-                    self.shutdown_now = True
-                return True
+                if ('No such file or directory' in str(e)
+                        or 'Broken pipe' in str(e)):
+                    sys.exit(0)
+                not_done = True
             # end of getting log msgs from the queue
             self.debug_log('done reading from queue')
 
@@ -525,7 +507,12 @@ class SplunkPublisher(logging.Handler):
         if self.sleep_interval > 0:
             # Stop the timer. Happens automatically if this is called
             # via the timer, does not if invoked by force_flush()
-            self.timer.cancel()
+            if self.timer:
+                self.timer.cancel()
+            else:
+                self.debug_log((
+                    'perform_work - done - timer was destroyed'))
+                return
 
         self.debug_log((
             'perform_work - ready'))
@@ -668,12 +655,10 @@ class SplunkPublisher(logging.Handler):
                     # Start up again right away if queue was not cleared
                     timer_interval = 1.0
 
-                self.debug_log('resetting timer thread')
-                self.timer = Timer(timer_interval, self.publish_to_splunk)
-                # Auto-kill thread if main process exits
-                self.timer.daemon = True
-                self.timer.start()
-                self.debug_log('timer thread scheduled')
+                self.debug_log('reducing timer - start')
+                self.start_worker_thread(
+                    sleep_interval=timer_interval)
+                self.debug_log('reducing timer - done')
         # end of checking if this should run again or is shutting down
 
         self.debug_log((
@@ -738,9 +723,12 @@ class SplunkPublisher(logging.Handler):
         self.debug_log('shutdown - start')
 
         # Only initiate shutdown once
-        if self.is_shutting_down(
-                shutdown_event=self.shutdown_event):
+        if not self.shutdown_now:
             self.debug_log('shutdown - still shutting down')
+            # Cancels the scheduled Timer, allows exit immediately
+            if self.timer:
+                self.timer.cancel()
+                self.timer = None
             return
         else:
             self.debug_log('shutdown - start - setting instance shutdown')
@@ -748,10 +736,9 @@ class SplunkPublisher(logging.Handler):
             self.shutdown_event.set()
         # if/else already shutting down
 
-        if self.sleep_interval > 0:
-            # Cancels the scheduled Timer, allows exit immediately
-            self.timer.cancel()
-        # cancel existing timer
+        # Cancels the scheduled Timer, allows exit immediately
+        self.timer.cancel()
+        self.timer = None
 
         self.debug_log(
             'shutdown - publishing remaining logs')

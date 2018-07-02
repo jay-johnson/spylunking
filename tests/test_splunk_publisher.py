@@ -4,8 +4,24 @@ import unittest
 import mock
 import json
 import uuid
-from spylunking.splunk_publisher import SplunkPublisher
+import time
 from tests.mock_utils import MockRequest
+from spylunking.splunk_publisher import SplunkPublisher
+from spylunking.consts import SPLUNK_HOST
+from spylunking.consts import SPLUNK_PORT
+from spylunking.consts import SPLUNK_HOSTNAME
+from spylunking.consts import SPLUNK_TOKEN
+from spylunking.consts import SPLUNK_INDEX
+from spylunking.consts import SPLUNK_SOURCE
+from spylunking.consts import SPLUNK_SOURCETYPE
+from spylunking.consts import SPLUNK_VERIFY
+from spylunking.consts import SPLUNK_TIMEOUT
+from spylunking.consts import SPLUNK_SLEEP_INTERVAL
+from spylunking.consts import SPLUNK_RETRY_COUNT
+from spylunking.consts import SPLUNK_RETRY_BACKOFF
+from spylunking.consts import SPLUNK_QUEUE_SIZE
+from spylunking.consts import SPLUNK_DEBUG
+from spylunking.consts import SPLUNK_COLLECTOR_URL
 
 
 def mock_post_request(
@@ -18,7 +34,8 @@ def mock_post_request(
         timeout=None):
     """mock_post_request
 
-    Mock ``requests.Session.post``
+    Mock spylunking.send_to_splunk which is using:
+    ``requests.Session.post``
 
     :param self: class obj
     :param session: requests.Session
@@ -39,36 +56,6 @@ def mock_post_request(
         req.vals)
     return req
 # end of mock_post_request
-
-
-# These are intentionally different than the kwarg defaults
-SPLUNK_HOST = os.getenv(
-    'SPLUNK_HOST',
-    'splunkenterprise')
-SPLUNK_PORT = int(os.getenv(
-    'SPLUNK_PORT',
-    '8088'))
-SPLUNK_COLLECTOR_URL = (
-    "https://{}:{}/services/collector").format(
-        SPLUNK_HOST,
-        SPLUNK_PORT)
-SPLUNK_TOKEN = 'ABCDEFGH-IJKL-MNOP-QRST-UVWXYZ123456'
-SPLUNK_INDEX = 'test_index'
-SPLUNK_HOSTNAME = 'test_host'
-SPLUNK_SOURCE = 'test_source'
-SPLUNK_SOURCETYPE = 'test_sourcetype'
-SPLUNK_VERIFY = False
-SPLUNK_TIMEOUT = 27
-SPLUNK_SLEEP_INTERVAL = 0.0
-SPLUNK_QUEUE_SIZE = 1111
-SPLUNK_DEBUG = False
-SPLUNK_RETRY_COUNT = 1
-SPLUNK_RETRY_BACKOFF = 0.1
-
-RECEIVER_URL = (
-    'https://{}:{}/services/collector').format(
-        SPLUNK_HOST,
-        SPLUNK_PORT)
 
 
 class TestSplunkPublisher(unittest.TestCase):
@@ -159,6 +146,12 @@ class TestSplunkPublisher(unittest.TestCase):
         log_msg = ('testing message={}').format(
             str(uuid.uuid4()))
         log.warning(log_msg)
+
+        # now wait for the thread to publish after
+        # waking up, reading from the queue, formatting
+        # the message and then calling the mock for:
+        # send_to_splunk
+        time.sleep(SPLUNK_SLEEP_INTERVAL + 1.0)
 
         expected_output = {
             'event': log_msg,

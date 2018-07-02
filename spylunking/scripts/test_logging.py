@@ -4,7 +4,7 @@
 Publish functional testing logs to splunk using the logger
 """
 
-# import time
+import time
 import uuid
 from spylunking.log.setup_logging import build_colorized_logger
 
@@ -54,7 +54,8 @@ def run_main():
 
     # sleep to allow the thread/process sleep to pick up these
     # messages before exiting
-    # time.sleep(2)
+    time.sleep(2)
+
 # end of run_main
 
 

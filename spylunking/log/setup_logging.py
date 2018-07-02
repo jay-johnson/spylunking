@@ -19,11 +19,16 @@ Splunk optional tuning environment variables:
 
 ::
 
-    export SPLUNK_RETRY_COUNT="<number of attempts to send logs>"
-    export SPLUNK_TIMEOUT="<timeout in seconds per attempt>"
-    export SPLUNK_QUEUE_SIZE="<integer value or 0 for infinite>"
-    export SPLUNK_SLEEP_INTERVAL="<seconds to sleep between publishes>"
-    export SPLUNK_DEBUG="<debug the Splunk Publisher by setting to 1>"
+    export SPLUNK_INDEX="<splunk index>"
+    export SPLUNK_SOURCE="<splunk source>"
+    export SPLUNK_SOURCETYPE="<splunk sourcetype>"
+    export SPLUNK_VERIFY="<verify certs on HTTP POST>"
+    export SPLUNK_TIMEOUT="<timeout in seconds>"
+    export SPLUNK_QUEUE_SIZE="<num msgs allowed in queue - 0=infinite>"
+    export SPLUNK_SLEEP_INTERVAL="<sleep in seconds per batch>"
+    export SPLUNK_RETRY_COUNT="<attempts per log to retry publishing>"
+    export SPLUNK_RETRY_BACKOFF="<cooldown in seconds per failed POST>"
+    export SPLUNK_DEBUG="<1 enable debug|0 off>"
 
 """
 
@@ -33,8 +38,23 @@ import datetime
 import json
 import logging.config
 import spylunking.get_token as get_token
-from spylunking.ppj import ppj
 from pythonjsonlogger import jsonlogger
+from spylunking.ppj import ppj
+from spylunking.consts import SPLUNK_HOST
+from spylunking.consts import SPLUNK_PORT
+from spylunking.consts import SPLUNK_TOKEN
+from spylunking.consts import SPLUNK_INDEX
+from spylunking.consts import SPLUNK_SOURCETYPE
+from spylunking.consts import SPLUNK_VERIFY
+from spylunking.consts import SPLUNK_ADDRESS
+from spylunking.consts import SPLUNK_API_ADDRESS
+from spylunking.consts import SPLUNK_TIMEOUT
+from spylunking.consts import SPLUNK_SLEEP_INTERVAL
+from spylunking.consts import SPLUNK_RETRY_COUNT
+from spylunking.consts import SPLUNK_QUEUE_SIZE
+from spylunking.consts import SPLUNK_DEBUG
+from spylunking.consts import SPLUNK_HANDLER_NAME
+from spylunking.consts import LOG_HANDLER_NAME
 
 
 class SplunkFormatter(jsonlogger.JsonFormatter):
@@ -185,10 +205,12 @@ def setup_logging(
 
     """
 
-    if os.getenv(
-            'SPLUNK_DEBUG',
-            '0') == '1':
+    if SPLUNK_DEBUG:
         splunk_debug = True
+
+    if not splunk_token:
+        if SPLUNK_TOKEN:
+            splunk_token = splunk_token
 
     config = None
     if os.getenv(
@@ -283,105 +305,40 @@ def setup_logging(
                 if splunk_index:
                     config['handlers'][splunk_handler_name]['index'] = \
                         splunk_index
+
                 config['handlers'][splunk_handler_name]['debug'] = \
                     splunk_debug
 
-                if os.getenv(
-                        'SPLUNK_QUEUE_SIZE',
-                        None):
-                    # assume infinite to safeguard issues
-                    queue_size = 0
-                    try:
-                        queue_size = int(os.getenv(
-                            'SPLUNK_QUEUE_SIZE',
-                            queue_size))
-                    except Exception as e:
-                        queue_size = 0
-                        print(
-                            'Invalid queue_size={} env value'.format(
-                                os.getenv(
-                                    'SPLUNK_QUEUE_SIZE',
-                                    None)))
-                    # end of try/ex parsing SPLUNK_QUEUE_SIZE
+                if config['handlers'][splunk_handler_name].get(
+                        'queue_size',
+                        True):
                     key = 'queue_size'
-
                     config['handlers'][splunk_handler_name][key] = \
-                        queue_size
+                        SPLUNK_QUEUE_SIZE
                 # end of checking for queue_size changes
 
-                if os.getenv(
-                        'SPLUNK_SLEEP_INTERVAL',
-                        None):
-                    # assume 1.0 seconds to safeguard issues
-                    sleep_interval = 1.0
-                    try:
-                        sleep_interval = float(os.getenv(
-                            'SPLUNK_SLEEP_INTERVAL',
-                            sleep_interval))
-                    except Exception as e:
-                        sleep_interval = 1.0
-                        print(
-                            'Invalid sleep_interval={} env value'.format(
-                                os.getenv(
-                                    'SPLUNK_SLEEP_INTERVAL',
-                                    None)))
-                    # end of try/ex parsing SPLUNK_SLEEP_INTERVAL
-                    key = 'sleep_interval'
-
-                    config['handlers'][splunk_handler_name][key] = \
-                        sleep_interval
-                else:
-                    if splunk_sleep_interval >= 0:
-                        key = 'sleep_interval'
-                        config['handlers'][splunk_handler_name][key] = \
-                            splunk_sleep_interval
-                # end of checking for sleep_interval changes
-
-                if os.getenv(
-                        'SPLUNK_RETRY_COUNT',
-                        None):
-                    # assume 20 to safeguard issues
-                    retry_count = 20
-                    try:
-                        retry_count = int(os.getenv(
-                            'SPLUNK_RETRY_COUNT',
-                            retry_count))
-                    except Exception as e:
-                        retry_count = 20
-                        print(
-                            'Invalid retry_count={} env value'.format(
-                                os.getenv(
-                                    'SPLUNK_RETRY_COUNT',
-                                    None)))
-                    # end of try/ex parsing SPLUNK_RETRY_COUNT
+                if SPLUNK_RETRY_COUNT:
                     key = 'retry_count'
-
                     config['handlers'][splunk_handler_name][key] = \
-                        retry_count
+                        SPLUNK_RETRY_COUNT
                 # end of checking for retry_count changes
 
-                if os.getenv(
-                        'SPLUNK_TIMEOUT',
-                        None):
-                    # assume 10 to safeguard issues
-                    splunk_timeout = 10
-                    try:
-                        splunk_timeout = float(os.getenv(
-                            'SPLUNK_TIMEOUT',
-                            splunk_timeout))
-                    except Exception as e:
-                        splunk_timeout = 10
-                        print(
-                            'Invalid splunk_timeout={} env value'.format(
-                                os.getenv(
-                                    'SPLUNK_TIMEOUT',
-                                    None)))
-                    # end of try/ex parsing SPLUNK_TIMEOUT
-                    key = 'timeout'
-
+                if SPLUNK_TIMEOUT:
                     config['handlers'][splunk_handler_name][key] = \
-                        splunk_timeout
+                        SPLUNK_TIMEOUT
                 # end of checking for splunk_timeout changes
+
+                key = 'sleep_interval'
+                if splunk_sleep_interval >= 0:
+                    config['handlers'][splunk_handler_name][key] = \
+                        splunk_sleep_interval
+                else:
+                    if SPLUNK_SLEEP_INTERVAL:
+                        key = 'sleep_interval'
+                        config['handlers'][splunk_handler_name][key] = \
+                            SPLUNK_SLEEP_INTERVAL
+
+                # end of checking for sleep_interval changes
 
                 if found_splunk_handler:
                     config['root']['handlers'].append(
@@ -423,6 +380,28 @@ def setup_logging(
             config)
         return
     else:
+        if not splunk_host and not splunk_port:
+            if SPLUNK_ADDRESS:
+                try:
+                    addr_split = SPLUNK_ADDRESS.split(':')
+                    if len(addr_split) > 1:
+                        splunk_host = addr_split[0]
+                        splunk_port = int(addr_split[1])
+                except Exception as e:
+                    print((
+                        'Failed building SPLUNK_ADDRESS={} as'
+                        'host:port with ex={}').format(
+                            SPLUNK_ADDRESS,
+                            e))
+        else:
+            if not splunk_host:
+                if SPLUNK_HOST:
+                    splunk_host = SPLUNK_HOST
+            if not splunk_port:
+                if SPLUNK_PORT:
+                    splunk_port = SPLUNK_PORT
+        # end of connectivity changes from env vars
+
         config = {
             'version': 1,
             'disable_existing_loggers': False,
@@ -479,17 +458,17 @@ def setup_logging(
                     'port': '{}'.format(
                         splunk_port),
                     'index': '{}'.format(
-                        splunk_index),
+                        SPLUNK_INDEX),
                     'token': '{}'.format(
-                        splunk_token),
+                        SPLUNK_TOKEN),
                     'formatter': '{}'.format(splunk_handler_name),
-                    'sourcetype': 'json',
-                    'verify': False,
-                    'timeout': 10,
-                    'retry_count': 60,
-                    'sleep_interval': 1.0,
-                    'queue_size': 1000000,
-                    'debug': False
+                    'sourcetype': SPLUNK_SOURCETYPE,
+                    'verify': SPLUNK_VERIFY,
+                    'timeout': SPLUNK_TIMEOUT,
+                    'retry_count': SPLUNK_RETRY_COUNT,
+                    'sleep_interval': SPLUNK_SLEEP_INTERVAL,
+                    'queue_size': SPLUNK_QUEUE_SIZE,
+                    'debug': SPLUNK_DEBUG
                 }
             },
             'loggers': {
@@ -584,31 +563,15 @@ def build_colorized_logger(
     use_splunk_password = os.getenv(
         'SPLUNK_PASSWORD',
         None)
-    use_splunk_address = os.getenv(
-        'SPLUNK_ADDRESS',
-        'localhost:8088')
-    use_splunk_api_address = os.getenv(
-        'SPLUNK_API_ADDRESS',
-        'localhost:8089')
-    use_splunk_token = os.getenv(
-        'SPLUNK_TOKEN',
-        None)
-    use_splunk_index = os.getenv(
-        'SPLUNK_INDEX',
-        'antinex')
+    use_splunk_address = SPLUNK_ADDRESS
+    use_splunk_api_address = SPLUNK_API_ADDRESS
+    use_splunk_token = SPLUNK_TOKEN
+    use_splunk_index = SPLUNK_INDEX
+    use_splunk_verify = SPLUNK_VERIFY
+    use_splunk_debug = SPLUNK_DEBUG
+    use_splunk_handler_name = SPLUNK_HANDLER_NAME
+    use_handler_name = LOG_HANDLER_NAME
     use_handlers_dict = None
-    use_handler_name = os.getenv(
-        'LOG_HANDLER_NAME',
-        'console')
-    use_splunk_handler_name = os.getenv(
-        'SPLUNK_HANDLER_NAME',
-        'splunk')
-    use_splunk_verify = bool(os.getenv(
-        'SPLUNK_VERIFY',
-        '0').strip() == '1')
-    use_splunk_debug = bool(os.getenv(
-        'SPLUNK_DEBUG',
-        '0').strip() == '1')
     use_splunk_host = None
     use_splunk_port = None
     if log_config_path:
@@ -697,12 +660,8 @@ def build_colorized_logger(
             and use_splunk_address
             and use_splunk_api_address):
         try:
-            if os.getenv(
-                    'SPLUNK_TOKEN',
-                    False):
-                use_splunk_token = os.getenv(
-                    'SPLUNK_TOKEN',
-                    'not-a-good-token').strip()
+            if SPLUNK_TOKEN:
+                use_splunk_token = SPLUNK_TOKEN
             else:
                 use_splunk_token = get_token.get_token(
                     user=use_splunk_user,

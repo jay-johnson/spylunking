@@ -211,10 +211,19 @@ The ``build_colorized_logger`` calls the ``setup_logging`` method that builds th
    utilities
 
 
-Splunk Publisher
-================
+Using Threads to Publish to Splunk
+----------------------------------
 
 The Splunk Publisher handles sending logs to the configured Splunk server. It was originally inspired from https://github.com/zach-taylor/splunk_handler but after encountering issues within Celery tasks this class was created to maintain a stable logger from inside a Celery task.
 
 .. automodule:: spylunking.splunk_publisher
    :members: SplunkPublisher
+
+Using Multiprocesing to Publish to Splunk
+-----------------------------------------
+
+The Splunk Publisher handles sending logs to the configured Splunk server. It was originally inspired from https://github.com/zach-taylor/splunk_handler but this one uses multiiprocessing instead of threads. This approach will not work in Celery tasks.
+
+.. automodule:: spylunking.mp_splunk_publisher
+   :members: MPSplunkPublisher
+
