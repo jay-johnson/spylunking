@@ -142,7 +142,7 @@ class TestMPSplunkPublisher(unittest.TestCase):
         # waking up, reading from the queue, formatting
         # the message and then calling the mock for:
         # send_to_splunk
-        time.sleep(SPLUNK_SLEEP_INTERVAL + 1.0)
+        time.sleep(SPLUNK_SLEEP_INTERVAL + 3.0)
 
         expected_output = {
             'event': log_msg,
