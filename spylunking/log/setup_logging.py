@@ -15,6 +15,14 @@ with a local or remote splunk server:
     export SPLUNK_USER="trex"
     export SPLUNK_TOKEN="<Optional pre-existing Splunk token>"
 
+Splunk drill down fields with environment variables:
+
+::
+
+    export LOG_NAME="<application log name>"
+    export DEPLOY_CONFIG="<application deployed config like k8 filename>"
+    export ENV_NAME="<environment name for this application>"
+
 Splunk optional tuning environment variables:
 
 ::
@@ -28,7 +36,8 @@ Splunk optional tuning environment variables:
     export SPLUNK_SLEEP_INTERVAL="<sleep in seconds per batch>"
     export SPLUNK_RETRY_COUNT="<attempts per log to retry publishing>"
     export SPLUNK_RETRY_BACKOFF="<cooldown in seconds per failed POST>"
-    export SPLUNK_DEBUG="<1 enable debug|0 off>"
+    export SPLUNK_DEBUG="<debug the publisher - 1 enable debug|0 off>"
+    export SPLUNK_VERBOSE="<debug the sp command line tool - 1 enable|0 off>"
 
 """
 
@@ -40,6 +49,8 @@ import logging.config
 import spylunking.get_token as get_token
 from pythonjsonlogger import jsonlogger
 from spylunking.ppj import ppj
+from spylunking.consts import SPLUNK_USER
+from spylunking.consts import SPLUNK_PASSWORD
 from spylunking.consts import SPLUNK_HOST
 from spylunking.consts import SPLUNK_PORT
 from spylunking.consts import SPLUNK_TOKEN
@@ -54,6 +65,9 @@ from spylunking.consts import SPLUNK_RETRY_COUNT
 from spylunking.consts import SPLUNK_QUEUE_SIZE
 from spylunking.consts import SPLUNK_DEBUG
 from spylunking.consts import SPLUNK_HANDLER_NAME
+from spylunking.consts import SPLUNK_LOG_NAME
+from spylunking.consts import SPLUNK_DEPLOY_CONFIG
+from spylunking.consts import SPLUNK_ENV_NAME
 from spylunking.consts import LOG_HANDLER_NAME
 
 
@@ -557,12 +571,8 @@ def build_colorized_logger(
             'LOG_CFG',
             os.path.dirname(os.path.realpath(__file__))),
         config)
-    use_splunk_user = os.getenv(
-        'SPLUNK_USER',
-        None)
-    use_splunk_password = os.getenv(
-        'SPLUNK_PASSWORD',
-        None)
+    use_splunk_user = SPLUNK_USER
+    use_splunk_password = SPLUNK_PASSWORD
     use_splunk_address = SPLUNK_ADDRESS
     use_splunk_api_address = SPLUNK_API_ADDRESS
     use_splunk_token = SPLUNK_TOKEN
@@ -715,15 +725,9 @@ def build_colorized_logger(
 
     if enable_splunk:
         default_fields = {
-            'name': os.getenv(
-                'LOG_NAME',
-                ''),
-            'dc': os.getenv(
-                'DEPLOY_CONFIG',
-                ''),
-            'env': os.getenv(
-                'ENV_NAME',
-                'DEV')
+            'name': SPLUNK_LOG_NAME,
+            'dc': SPLUNK_DEPLOY_CONFIG,
+            'env': SPLUNK_ENV_NAME
         }
 
         last_step = ''

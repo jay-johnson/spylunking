@@ -250,7 +250,7 @@ class MPSplunkPublisher(logging.Handler):
                 self.write_log(
                     'log queue full; log data will be dropped.')
         else:
-            # Flush log immediately; this is a blocking call
+            # Publish immediately because there is no worker
             self.publish_to_splunk(
                 payload=record)
 

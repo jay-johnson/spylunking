@@ -84,7 +84,52 @@ Below is a video showing how to tag your application's logs using the ``LOG_NAME
 
 .. raw:: html
 
-    <a href="https://asciinema.org/a/189634?autoplay=1" target="_blank"><img src="https://asciinema.org/a/189634.png"/></a>
+    <a href="https://asciinema.org/a/189711?autoplay=1" target="_blank"><img src="https://asciinema.org/a/189711.png"/></a>
+
+Commands from the video:
+
+#.	Set an Application Log Name
+
+::
+
+    export LOG_NAME=payments
+
+#.	Search for Logs in Splunk
+
+::
+
+	sp -q 'index="antinex" AND name=payments | head 5 | reverse'
+	No matches for search={
+		"search": "search index=\"antinex\" AND name=payments | head 5 | reverse"
+	} response={
+		"init_offset": 0,
+		"messages": [],
+		"post_process_count": 0,
+		"preview": false,
+		"results": []
+	}
+
+#.	Send Test Logs to Splunk
+
+::
+
+	test_logging.py 
+	2018-07-02 09:18:22,197 - helloworld - INFO - testing INFO message_id=93e33f10-ebbf-49a1-a87a-a76858448c71
+	2018-07-02 09:18:22,199 - helloworld - ERROR - testing ERROR message_id=3b3f0362-f146-47b4-9fff-c6cc3b165279
+	2018-07-02 09:18:22,200 - helloworld - CRITICAL - testing CRITICAL message_id=8870f39e-82b5-4071-b19a-80ce6cfefbd6
+	2018-07-02 09:18:22,201 - helloworld - WARNING - testing WARNING message_id=6ab745cb-8a14-41ae-b16e-13c0c80c4963
+	2018-07-02 09:18:22,201 - helloworld - ERROR - Testing EXCEPTION with ex=Throw for testing exceptions message_id=26b3c421-46b7-49d2-960b-1ca2ed7b8e03
+
+#.	Search for Test Logs in Splunk
+
+::
+
+	sp -q 'index="antinex" AND name=payments | head 5 | reverse'
+	2018-07-02 09:18:22,197 helloworld - INFO - testing INFO message_id=93e33f10-ebbf-49a1-a87a-a76858448c71 
+	2018-07-02 09:18:22,199 helloworld - ERROR - testing ERROR message_id=3b3f0362-f146-47b4-9fff-c6cc3b165279 
+	2018-07-02 09:18:22,200 helloworld - CRITICAL - testing CRITICAL message_id=8870f39e-82b5-4071-b19a-80ce6cfefbd6 
+	2018-07-02 09:18:22,201 helloworld - WARNING - testing WARNING message_id=6ab745cb-8a14-41ae-b16e-13c0c80c4963 
+	2018-07-02 09:18:22,201 helloworld - ERROR - Testing EXCEPTION with ex=Throw for testing exceptions message_id=26b3c421-46b7-49d2-960b-1ca2ed7b8e03 
 
 Get Splunk Logs from the Command Line Tool
 ------------------------------------------
@@ -576,20 +621,27 @@ And you can view log the full JSON dictionaries using the ``-j`` argument on the
     }
     done
 
-Debug the Logger
-----------------
-
-Export this variable before creating a logger.
-
-::
-
-    export SPLUNK_DEBUG=1
-
 Available Environment Variables
 -------------------------------
 
+Drill down fields
+=================
+
+Splunk drill down fields with environment variables:
+
 ::
 
+    export LOG_NAME="<application log name>"
+    export DEPLOY_CONFIG="<application deployed config like k8 filename>"
+    export ENV_NAME="<environment name for this application>"
+
+Common Environment Variables
+============================
+
+::
+
+    export SPLUNK_USER="<splunk host>"
+    export SPLUNK_PASSWORD="<splunk host>"
     export SPLUNK_HOST="<splunk host>"
     export SPLUNK_PORT="<splunk port: 8088>"
     export SPLUNK_API_PORT="<splunk port: 8089>"
@@ -605,7 +657,17 @@ Available Environment Variables
     export SPLUNK_SLEEP_INTERVAL="<sleep in seconds per batch>"
     export SPLUNK_RETRY_COUNT="<attempts per log to retry publishing>"
     export SPLUNK_RETRY_BACKOFF="<cooldown in seconds per failed POST>"
-    export SPLUNK_DEBUG="<1 enable debug|0 off>"
+    export SPLUNK_DEBUG="<debug the publisher - 1 enable debug|0 off>"
+    export SPLUNK_VERBOSE="<debug the sp command line tool - 1 enable|0 off>"
+
+Debug the Publishers
+====================
+
+Export this variable before creating a logger to see the publisher logs:
+
+::
+
+    export SPLUNK_DEBUG=1
 
 Login to Splunk from a Browser
 ------------------------------

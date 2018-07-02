@@ -15,39 +15,19 @@ INVALID = 5
 NOT_DONE = 6
 
 
-def get_status(
-        status):
-    """get_status
-
-    Return the string label for an integer status code
-    which should be one of the ones above.
-
-    :param status: integer status code
-
-    """
-    if status == SUCCESS:
-        return 'SUCCESS'
-    elif status == FAILED:
-        return 'FAILED'
-    elif status == ERR:
-        return 'ERR'
-    elif status == EX:
-        return 'EX'
-    elif status == NOT_RUN:
-        return 'NOT_RUN'
-    elif status == INVALID:
-        return 'INVALID'
-    elif status == NOT_DONE:
-        return 'NOT_DONE'
-    else:
-        return 'unsupported status={}'.format(
-            status)
-# end of get_status
-
-
 LOG_HANDLER_NAME = os.getenv(
     'LOG_HANDLER_NAME',
     'console').strip()
+SPLUNK_USER = os.getenv(
+    'SPLUNK_USER',
+    None)
+if SPLUNK_USER:
+    SPLUNK_USER = SPLUNK_USER.strip()
+SPLUNK_PASSWORD = os.getenv(
+    'SPLUNK_PASSWORD',
+    None)
+if SPLUNK_PASSWORD:
+    SPLUNK_PASSWORD = SPLUNK_PASSWORD.strip()
 SPLUNK_HOST = os.getenv(
     'SPLUNK_HOST',
     'splunkenterprise').strip()
@@ -87,6 +67,9 @@ SPLUNK_SOURCETYPE = os.getenv(
 SPLUNK_VERIFY = bool(os.getenv(
     'SPLUNK_VERIFY',
     '0').strip() == '1')
+SPLUNK_VERBOSE = bool(os.getenv(
+    'SPLUNK_VERBOSE',
+    '0').strip() == '1')
 SPLUNK_TIMEOUT = float(os.getenv(
     'SPLUNK_TIMEOUT',
     '10.0').strip())
@@ -112,3 +95,42 @@ SPLUNK_COLLECTOR_URL = (
 SPLUNK_HANDLER_NAME = os.getenv(
     'SPLUNK_HANDLER_NAME',
     'splunk').strip()
+SPLUNK_LOG_NAME = os.getenv(
+    'LOG_NAME',
+    '').strip()
+SPLUNK_DEPLOY_CONFIG = os.getenv(
+    'DEPLOY_CONFIG',
+    '').strip()
+SPLUNK_ENV_NAME = os.getenv(
+    'ENV_NAME',
+    '').strip()
+
+
+def get_status(
+        status):
+    """get_status
+
+    Return the string label for an integer status code
+    which should be one of the ones above.
+
+    :param status: integer status code
+
+    """
+    if status == SUCCESS:
+        return 'SUCCESS'
+    elif status == FAILED:
+        return 'FAILED'
+    elif status == ERR:
+        return 'ERR'
+    elif status == EX:
+        return 'EX'
+    elif status == NOT_RUN:
+        return 'NOT_RUN'
+    elif status == INVALID:
+        return 'INVALID'
+    elif status == NOT_DONE:
+        return 'NOT_DONE'
+    else:
+        return 'unsupported status={}'.format(
+            status)
+# end of get_status

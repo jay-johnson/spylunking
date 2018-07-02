@@ -55,7 +55,7 @@ def run_main():
                 str(uuid.uuid4())))
             log.critical('CRITICAL message_id={}'.format(
                 str(uuid.uuid4())))
-            log.warn('WARN message_id={}'.format(
+            log.warning('WARNING message_id={}'.format(
                 str(uuid.uuid4())))
             num_logs += 5.0
             num_logs_per_batch += 5.0

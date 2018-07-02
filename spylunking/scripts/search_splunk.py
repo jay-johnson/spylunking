@@ -22,7 +22,7 @@ Pull Logs with a Query on the Command Line
 
 ::
 
-    sp -q 'index="antinex" AND levelname=INFO | head 10' \
+    sp -q 'index="antinex" AND levelname=INFO | head 10 | reverse' \
         -u trex -p 123321 -a splunkenterprise:8089
 
 Pull Logs with a Query on the Command Line
@@ -33,14 +33,14 @@ Get CRITICAL logs
 
 ::
 
-    sp -q 'index="antinex" AND levelname="CRITICAL"'
+    sp -q 'index="antinex" AND levelname="CRITICAL" | reverse'
 
 Get First 10 ERROR logs
 =======================
 
 ::
 
-    sp -q 'index="antinex" AND levelname="ERROR" | head 10' \
+    sp -q 'index="antinex" AND levelname="ERROR" | head 10 | reverse' \
         -u trex -p 123321 -a splunkenterprise:8089
 
 """
@@ -53,8 +53,13 @@ from spylunking.log.setup_logging import \
     simple_logger
 import spylunking.search as sp
 from spylunking.ev import ev
-from spylunking.consts import SUCCESS
 from spylunking.ppj import ppj
+from spylunking.consts import SUCCESS
+from spylunking.consts import SPLUNK_USER
+from spylunking.consts import SPLUNK_PASSWORD
+from spylunking.consts import SPLUNK_API_ADDRESS
+from spylunking.consts import SPLUNK_INDEX
+from spylunking.consts import SPLUNK_VERBOSE
 
 
 log = simple_logger()
@@ -201,8 +206,8 @@ def show_search_results(
             log.critical((
                 '{}').format(
                     msg))
-        elif log_dict['levelname'] == 'WARN':
-            log.warn((
+        elif log_dict['levelname'] == 'WARNING':
+            log.warning((
                 '{}').format(
                     msg))
         else:
@@ -226,8 +231,8 @@ def show_search_results(
             log.critical((
                 '{}').format(
                     ppj(log_dict)))
-        elif log_dict['levelname'] == 'WARN':
-            log.warn((
+        elif log_dict['levelname'] == 'WARNING':
+            log.warning((
                 '{}').format(
                     ppj(log_dict)))
         else:
@@ -356,24 +361,14 @@ def run_main():
         action='store_true')
     args = parser.parse_args()
 
-    user = ev(
-        'SPLUNK_USER',
-        'user-not-set')
-    password = ev(
-        'SPLUNK_PASSWORD',
-        'password-not-set')
-    address = ev(
-        'SPLUNK_API_ADDRESS',
-        'localhost:8089')
-    index_name = ev(
-        'SPLUNK_INDEX',
-        'antinex')
-    verbose = bool(str(ev(
-        'SPLUNK_VERBOSE',
-        'false')).lower() == 'true')
+    user = SPLUNK_USER
+    password = SPLUNK_PASSWORD
+    address = SPLUNK_API_ADDRESS
+    index_name = SPLUNK_INDEX
+    verbose = SPLUNK_VERBOSE
     show_message_details = bool(str(ev(
         'MESSAGE_DETAILS',
-        'false')).lower() == 'true')
+        '0')).lower() == '1')
     earliest_time_minutes = None
     latest_time_minutes = None
     verify = False
@@ -405,7 +400,7 @@ def run_main():
         json_view = True
         code_view = False
 
-    default_search_query = 'index="{}" | head 10'.format(
+    default_search_query = 'index="{}" | head 10 | reverse'.format(
         index_name)
     search_query = ev(
         'SPLUNK_QUERY',

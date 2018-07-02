@@ -4,7 +4,6 @@ import unittest
 import mock
 import json
 import uuid
-import time
 from tests.mock_utils import MockRequest
 from spylunking.splunk_publisher import SplunkPublisher
 from spylunking.consts import SPLUNK_HOST
@@ -16,7 +15,6 @@ from spylunking.consts import SPLUNK_SOURCE
 from spylunking.consts import SPLUNK_SOURCETYPE
 from spylunking.consts import SPLUNK_VERIFY
 from spylunking.consts import SPLUNK_TIMEOUT
-from spylunking.consts import SPLUNK_SLEEP_INTERVAL
 from spylunking.consts import SPLUNK_RETRY_COUNT
 from spylunking.consts import SPLUNK_RETRY_BACKOFF
 from spylunking.consts import SPLUNK_QUEUE_SIZE
@@ -76,7 +74,7 @@ class TestSplunkPublisher(unittest.TestCase):
             sourcetype=SPLUNK_SOURCETYPE,
             verify=SPLUNK_VERIFY,
             timeout=SPLUNK_TIMEOUT,
-            sleep_interval=SPLUNK_SLEEP_INTERVAL,
+            sleep_interval=0,
             queue_size=SPLUNK_QUEUE_SIZE,
             debug=SPLUNK_DEBUG,
             retry_count=SPLUNK_RETRY_COUNT,
@@ -118,7 +116,7 @@ class TestSplunkPublisher(unittest.TestCase):
         self.assertEqual(self.splunk.sourcetype, SPLUNK_SOURCETYPE)
         self.assertEqual(self.splunk.verify, SPLUNK_VERIFY)
         self.assertEqual(self.splunk.timeout, SPLUNK_TIMEOUT)
-        self.assertEqual(self.splunk.sleep_interval, SPLUNK_SLEEP_INTERVAL)
+        self.assertEqual(self.splunk.sleep_interval, 0)
         self.assertEqual(self.splunk.retry_count, SPLUNK_RETRY_COUNT)
         self.assertEqual(self.splunk.retry_backoff, SPLUNK_RETRY_BACKOFF)
         self.assertIsNotNone(self.splunk.debug)
@@ -146,12 +144,6 @@ class TestSplunkPublisher(unittest.TestCase):
         log_msg = ('testing message={}').format(
             str(uuid.uuid4()))
         log.warning(log_msg)
-
-        # now wait for the thread to publish after
-        # waking up, reading from the queue, formatting
-        # the message and then calling the mock for:
-        # send_to_splunk
-        time.sleep(SPLUNK_SLEEP_INTERVAL + 3.0)
 
         expected_output = {
             'event': log_msg,

@@ -4,7 +4,6 @@ import unittest
 import mock
 import json
 import uuid
-import time
 from tests.mock_utils import MockRequest
 from spylunking.mp_splunk_publisher import MPSplunkPublisher
 from spylunking.consts import SPLUNK_HOST
@@ -16,7 +15,6 @@ from spylunking.consts import SPLUNK_SOURCE
 from spylunking.consts import SPLUNK_SOURCETYPE
 from spylunking.consts import SPLUNK_VERIFY
 from spylunking.consts import SPLUNK_TIMEOUT
-from spylunking.consts import SPLUNK_SLEEP_INTERVAL
 from spylunking.consts import SPLUNK_RETRY_COUNT
 from spylunking.consts import SPLUNK_RETRY_BACKOFF
 from spylunking.consts import SPLUNK_QUEUE_SIZE
@@ -65,6 +63,11 @@ class TestMPSplunkPublisher(unittest.TestCase):
 
     def setUp(self):
         """setUp"""
+        self.org_value = os.getenv(
+            'TEST_MP_POST',
+            None)
+        os.environ.pop(
+            'TEST_MP_POST', None)
         self.splunk = MPSplunkPublisher(
             host=SPLUNK_HOST,
             port=SPLUNK_PORT,
@@ -75,17 +78,12 @@ class TestMPSplunkPublisher(unittest.TestCase):
             sourcetype=SPLUNK_SOURCETYPE,
             verify=SPLUNK_VERIFY,
             timeout=SPLUNK_TIMEOUT,
-            sleep_interval=SPLUNK_SLEEP_INTERVAL,
+            sleep_interval=0,
             queue_size=SPLUNK_QUEUE_SIZE,
             debug=SPLUNK_DEBUG,
             retry_count=SPLUNK_RETRY_COUNT,
             retry_backoff=SPLUNK_RETRY_BACKOFF
         )
-        self.org_value = os.getenv(
-            'TEST_MP_POST',
-            None)
-        os.environ.pop(
-            'TEST_MP_POST', None)
     # end of setUp
 
     def tearDown(self):
@@ -109,7 +107,7 @@ class TestMPSplunkPublisher(unittest.TestCase):
         self.assertEqual(self.splunk.sourcetype, SPLUNK_SOURCETYPE)
         self.assertEqual(self.splunk.verify, SPLUNK_VERIFY)
         self.assertEqual(self.splunk.timeout, SPLUNK_TIMEOUT)
-        self.assertEqual(self.splunk.sleep_interval, SPLUNK_SLEEP_INTERVAL)
+        self.assertEqual(self.splunk.sleep_interval, 0)
         self.assertEqual(self.splunk.retry_count, SPLUNK_RETRY_COUNT)
         self.assertEqual(self.splunk.retry_backoff, SPLUNK_RETRY_BACKOFF)
         self.assertIsNotNone(self.splunk.debug)
@@ -138,12 +136,6 @@ class TestMPSplunkPublisher(unittest.TestCase):
             str(uuid.uuid4()))
         log.warning(log_msg)
 
-        # now wait for the thread to publish after
-        # waking up, reading from the queue, formatting
-        # the message and then calling the mock for:
-        # send_to_splunk
-        time.sleep(SPLUNK_SLEEP_INTERVAL + 3.0)
-
         expected_output = {
             'event': log_msg,
             'source': SPLUNK_SOURCE,
@@ -156,18 +148,12 @@ class TestMPSplunkPublisher(unittest.TestCase):
             found_env_vals)
         self.assertIsNotNone(
             requested_vals)
-        print(requested_vals)
         found_url = requested_vals['url']
         self.assertEqual(
             found_url,
             SPLUNK_COLLECTOR_URL)
         found_data = json.loads(
             requested_vals['data'])
-        found_event = json.loads(
-            found_data['event'])
-        self.assertEqual(
-            expected_output['event'],
-            found_event['message'])
         self.assertEqual(
             expected_output['source'],
             found_data['source'])

@@ -14,5 +14,7 @@ script:
   - echo "Running Lint Tests"
   - flake8
   - pycodestyle
+  - echo "Running Unit Tests"
+  - py.test
   - echo "Running Tox"
   - tox

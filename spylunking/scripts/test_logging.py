@@ -35,7 +35,7 @@ def run_main():
             str(uuid.uuid4())))
         log.critical('testing CRITICAL message_id={}'.format(
             str(uuid.uuid4())))
-        log.warn('testing WARN message_id={}'.format(
+        log.warning('testing WARNING message_id={}'.format(
             str(uuid.uuid4())))
 
         try:
