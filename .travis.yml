@@ -16,5 +16,3 @@ script:
   - pycodestyle
   - echo "Running Tox"
   - tox
-  - echo "Running Unit Tests"
-  - py.test
