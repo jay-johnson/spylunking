@@ -95,46 +95,46 @@ Commands from the video:
 
 #.	Set an Application Log Name
 
-::
+    ::
 
-    export LOG_NAME=payments
+        export LOG_NAME=payments
 
 #.	Search for Logs in Splunk
 
-::
+    ::
 
-	sp -q 'index="antinex" AND name=payments | head 5 | reverse'
-	No matches for search={
-		"search": "search index=\"antinex\" AND name=payments | head 5 | reverse"
-	} response={
-		"init_offset": 0,
-		"messages": [],
-		"post_process_count": 0,
-		"preview": false,
-		"results": []
-	}
+        sp -q 'index="antinex" AND name=payments | head 5 | reverse'
+        No matches for search={
+            "search": "search index=\"antinex\" AND name=payments | head 5 | reverse"
+        } response={
+            "init_offset": 0,
+            "messages": [],
+            "post_process_count": 0,
+            "preview": false,
+            "results": []
+        }
 
 #.	Send Test Logs to Splunk
 
-::
+    ::
 
-	test_logging.py 
-	2018-07-02 09:18:22,197 - helloworld - INFO - testing INFO message_id=93e33f10-ebbf-49a1-a87a-a76858448c71
-	2018-07-02 09:18:22,199 - helloworld - ERROR - testing ERROR message_id=3b3f0362-f146-47b4-9fff-c6cc3b165279
-	2018-07-02 09:18:22,200 - helloworld - CRITICAL - testing CRITICAL message_id=8870f39e-82b5-4071-b19a-80ce6cfefbd6
-	2018-07-02 09:18:22,201 - helloworld - WARNING - testing WARNING message_id=6ab745cb-8a14-41ae-b16e-13c0c80c4963
-	2018-07-02 09:18:22,201 - helloworld - ERROR - Testing EXCEPTION with ex=Throw for testing exceptions message_id=26b3c421-46b7-49d2-960b-1ca2ed7b8e03
+        test_logging.py 
+        2018-07-02 09:18:22,197 - helloworld - INFO - testing INFO message_id=93e33f10-ebbf-49a1-a87a-a76858448c71
+        2018-07-02 09:18:22,199 - helloworld - ERROR - testing ERROR message_id=3b3f0362-f146-47b4-9fff-c6cc3b165279
+        2018-07-02 09:18:22,200 - helloworld - CRITICAL - testing CRITICAL message_id=8870f39e-82b5-4071-b19a-80ce6cfefbd6
+        2018-07-02 09:18:22,201 - helloworld - WARNING - testing WARNING message_id=6ab745cb-8a14-41ae-b16e-13c0c80c4963
+        2018-07-02 09:18:22,201 - helloworld - ERROR - Testing EXCEPTION with ex=Throw for testing exceptions message_id=26b3c421-46b7-49d2-960b-1ca2ed7b8e03
 
 #.	Search for Test Logs in Splunk
 
-::
+    ::
 
-	sp -q 'index="antinex" AND name=payments | head 5 | reverse'
-	2018-07-02 09:18:22,197 helloworld - INFO - testing INFO message_id=93e33f10-ebbf-49a1-a87a-a76858448c71 
-	2018-07-02 09:18:22,199 helloworld - ERROR - testing ERROR message_id=3b3f0362-f146-47b4-9fff-c6cc3b165279 
-	2018-07-02 09:18:22,200 helloworld - CRITICAL - testing CRITICAL message_id=8870f39e-82b5-4071-b19a-80ce6cfefbd6 
-	2018-07-02 09:18:22,201 helloworld - WARNING - testing WARNING message_id=6ab745cb-8a14-41ae-b16e-13c0c80c4963 
-	2018-07-02 09:18:22,201 helloworld - ERROR - Testing EXCEPTION with ex=Throw for testing exceptions message_id=26b3c421-46b7-49d2-960b-1ca2ed7b8e03 
+        sp -q 'index="antinex" AND name=payments | head 5 | reverse'
+        2018-07-02 09:18:22,197 helloworld - INFO - testing INFO message_id=93e33f10-ebbf-49a1-a87a-a76858448c71 
+        2018-07-02 09:18:22,199 helloworld - ERROR - testing ERROR message_id=3b3f0362-f146-47b4-9fff-c6cc3b165279 
+        2018-07-02 09:18:22,200 helloworld - CRITICAL - testing CRITICAL message_id=8870f39e-82b5-4071-b19a-80ce6cfefbd6 
+        2018-07-02 09:18:22,201 helloworld - WARNING - testing WARNING message_id=6ab745cb-8a14-41ae-b16e-13c0c80c4963 
+        2018-07-02 09:18:22,201 helloworld - ERROR - Testing EXCEPTION with ex=Throw for testing exceptions message_id=26b3c421-46b7-49d2-960b-1ca2ed7b8e03 
 
 Get Splunk Logs from the Command Line Tool
 ------------------------------------------
