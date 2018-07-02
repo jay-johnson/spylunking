@@ -29,7 +29,7 @@ class TestLogger(BaseTestCase):
     # end of tearDown
 
     @mock.patch(
-        ('requests.Session.post'),
+        ('spylunking.send_to_splunk.send_to_splunk'),
         new=mock_post_request)
     @mock.patch(
         ('spylunking.get_token.get_token'),
@@ -40,12 +40,13 @@ class TestLogger(BaseTestCase):
         log = build_colorized_logger(
             name='build_colorized_logger_with_splunk',
             splunk_user='trex',
-            splunk_password='123321')
+            splunk_password='123321',
+            splunk_sleep_interval=0)
         self.assertIsNotNone(log)
     # end of test_build_colorized_logger_with_splunk_user_and_password
 
     @mock.patch(
-        ('requests.Session.post'),
+        ('spylunking.send_to_splunk.send_to_splunk'),
         new=mock_post_request)
     @mock.patch(
         ('spylunking.get_token.get_token'),
@@ -54,7 +55,8 @@ class TestLogger(BaseTestCase):
             self):
         """test_build_colorized_logger"""
         log = build_colorized_logger(
-            name='build_colorized_logger_without_splunk')
+            name='build_colorized_logger_without_splunk',
+            splunk_sleep_interval=0)
         self.assertIsNotNone(log)
     # end of test_build_colorized_logger_without_splunk
 

@@ -4,11 +4,11 @@ import unittest
 import mock
 import json
 import uuid
-from spylunking.splunk_publisher import SplunkPublisher
+from spylunking.mp_splunk_publisher import MPSplunkPublisher
 from tests.mock_utils import MockRequest
 
 
-def mock_post_request(
+def mock_mp_post_request(
         self=None,
         session=None,
         url=None,
@@ -16,7 +16,7 @@ def mock_post_request(
         headers=None,
         verify=None,
         timeout=None):
-    """mock_post_request
+    """mock_mp_post_request
 
     Mock ``requests.Session.post``
 
@@ -35,10 +35,10 @@ def mock_post_request(
         'verify': verify,
         'timeout': timeout
     }
-    os.environ['TEST_POST'] = json.dumps(
+    os.environ['TEST_MP_POST'] = json.dumps(
         req.vals)
     return req
-# end of mock_post_request
+# end of mock_mp_post_request
 
 
 # These are intentionally different than the kwarg defaults
@@ -47,7 +47,7 @@ SPLUNK_HOST = os.getenv(
     'splunkenterprise')
 SPLUNK_PORT = int(os.getenv(
     'SPLUNK_PORT',
-    '8088'))
+    '4321'))
 SPLUNK_COLLECTOR_URL = (
     "https://{}:{}/services/collector").format(
         SPLUNK_HOST,
@@ -65,21 +65,15 @@ SPLUNK_DEBUG = False
 SPLUNK_RETRY_COUNT = 1
 SPLUNK_RETRY_BACKOFF = 0.1
 
-RECEIVER_URL = (
-    'https://{}:{}/services/collector').format(
-        SPLUNK_HOST,
-        SPLUNK_PORT)
 
-
-class TestSplunkPublisher(unittest.TestCase):
-    """TestSplunkPublisher"""
+class TestMPSplunkPublisher(unittest.TestCase):
+    """TestMPSplunkPublisher"""
 
     org_value = None
-    disable_shutdown_publish_value = None
 
     def setUp(self):
         """setUp"""
-        self.splunk = SplunkPublisher(
+        self.splunk = MPSplunkPublisher(
             host=SPLUNK_HOST,
             port=SPLUNK_PORT,
             token=SPLUNK_TOKEN,
@@ -96,31 +90,23 @@ class TestSplunkPublisher(unittest.TestCase):
             retry_backoff=SPLUNK_RETRY_BACKOFF
         )
         self.org_value = os.getenv(
-            'TEST_POST',
-            None)
-        self.disable_shutdown_publish_value = os.getenv(
-            'SPLUNK_DISABLE_SHUTDOWN_PUBLISH',
+            'TEST_MP_POST',
             None)
         os.environ.pop(
-            'TEST_POST', None)
-        os.environ.pop(
-            'SPLUNK_DISABLE_SHUTDOWN_PUBLISH', None)
+            'TEST_MP_POST', None)
     # end of setUp
 
     def tearDown(self):
         """tearDown"""
         self.splunk = None
         if self.org_value:
-            os.environ['TEST_POST'] = self.org_value
-        if self.disable_shutdown_publish_value:
-            os.environ['SPLUNK_DISABLE_SHUTDOWN_PUBLISH'] = \
-                self.disable_shutdown_publish_value
+            os.environ['TEST_MP_POST'] = self.org_value
     # end of tearDown
 
     def test_init(self):
         """test_init"""
         self.assertIsNotNone(self.splunk)
-        self.assertIsInstance(self.splunk, SplunkPublisher)
+        self.assertIsInstance(self.splunk, MPSplunkPublisher)
         self.assertIsInstance(self.splunk, logging.Handler)
         self.assertEqual(self.splunk.host, SPLUNK_HOST)
         self.assertEqual(self.splunk.port, SPLUNK_PORT)
@@ -141,7 +127,7 @@ class TestSplunkPublisher(unittest.TestCase):
 
     @mock.patch(
         ('spylunking.send_to_splunk.send_to_splunk'),
-        new=mock_post_request)
+        new=mock_mp_post_request)
     def test_publish_to_splunk(
             self):
         """test_publish_to_splunk
@@ -168,12 +154,13 @@ class TestSplunkPublisher(unittest.TestCase):
             'sourcetype': SPLUNK_SOURCETYPE
         }
         found_env_vals = os.getenv(
-            'TEST_POST',
+            'TEST_MP_POST',
             None)
         requested_vals = json.loads(
             found_env_vals)
         self.assertIsNotNone(
             requested_vals)
+        print(requested_vals)
         found_url = requested_vals['url']
         self.assertEqual(
             found_url,
@@ -197,4 +184,4 @@ class TestSplunkPublisher(unittest.TestCase):
             found_data['sourcetype'])
     # end of publish_to_splunk
 
-# end of TestSplunkPublisher
+# end of TestMPSplunkPublisher

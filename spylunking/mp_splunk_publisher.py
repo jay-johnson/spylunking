@@ -4,18 +4,30 @@ Publish to Splunk using a ``multiprocessing.Process`` worker
 Including a handler derived from the original repository:
 https://github.com/zach-taylor/splunk_handler
 
-This version was built to fix issues seen
-with multiple Celery worker processes.
+Please note this will not work with Celery. Please use
+the ``spylunking.splunk_publisher.SplunkPublisher`` if you want
+to see logs inside a Celery task.
 
 Supported environment variables:
 
 ::
 
-    export SPLUNK_SLEEP_INTERVAL=<block getting a message>
-    export SPLUNK_DEBUG=<1 enable debug|0 off>
-    export SPLUNK_DAEMON=<1 - turn on multiprocessing daemon|0 off>
+    export SPLUNK_HOST="<splunk host>"
+    export SPLUNK_PORT="<splunk port>"
+    export SPLUNK_TOKEN="<splunk token>"
+    export SPLUNK_INDEX="<splunk index>"
+    export SPLUNK_SOURCE="<splunk source>"
+    export SPLUNK_SOURCETYPE="<splunk sourcetype>"
+    export SPLUNK_VERIFY="<verify certs on HTTP POST>"
+    export SPLUNK_TIMEOUT="<timeout in seconds>"
+    export SPLUNK_QUEUE_SIZE="<num msgs allowed in queue - 0=infinite>"
+    export SPLUNK_SLEEP_INTERVAL="<sleep in seconds per batch>"
+    export SPLUNK_RETRY_COUNT="<attempts per log to retry publishing>"
+    export SPLUNK_RETRY_BACKOFF="<cooldown in seconds per failed POST>"
+    export SPLUNK_DEBUG="<1 enable debug|0 off>"
 
 """
+
 import os
 import json
 import logging
@@ -25,21 +37,19 @@ import traceback
 import requests
 import signal
 import multiprocessing
-from billiard.context import Process
+import spylunking.send_to_splunk as send_to_splunk
 from spylunking.ppj import ppj
 from requests.packages.urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
 
 
-instances = []
-
-
-class SplunkPublisher(logging.Handler):
+class MPSplunkPublisher(logging.Handler):
     """
     A logging handler to send logs to a Splunk Enterprise instance
     running the Splunk HTTP Event Collector.
 
-    Originally inspired from the repository:
+    Originally inspired from the repository but written for
+    python's multiprocessing framework:
     https://github.com/zach-taylor/splunk_handler
 
     This class allows multiple processes like Celery workers
@@ -49,10 +59,10 @@ class SplunkPublisher(logging.Handler):
 
     def __init__(
             self,
-            host,
-            port,
-            token,
-            index,
+            host=None,
+            port=None,
+            token=None,
+            index=None,
             hostname=None,
             source=None,
             sourcetype='text',
@@ -66,7 +76,8 @@ class SplunkPublisher(logging.Handler):
             retry_backoff=2.0):
         """__init__
 
-        Initialize the SplunkPublisher
+        Initialize the MPSplunkPublisher with support for
+        multiprocessing
 
         :param host: Splunk fqdn
         :param port: Splunk HEC Port 8088
@@ -89,36 +100,79 @@ class SplunkPublisher(logging.Handler):
                          and shutting down
         """
 
-        global instances
-        instances.append(self)
-
         logging.Handler.__init__(self)
 
         self.host = host
+        if self.host is None:
+            self.host = os.getenv(
+                'SPLUNK_HOST',
+                'splunkenterprise').strip()
         self.port = port
+        if self.port is None:
+            self.port = int(os.getenv(
+                'SPLUNK_PORT',
+                '8088').strip())
         self.token = token
+        if self.token is None:
+            self.token = os.getenv(
+                'SPLUNK_TOKEN',
+                'no-token-set').strip()
         self.index = index
+        if self.index is None:
+            self.index = os.getenv(
+                'SPLUNK_INDEX',
+                'no-index-set').strip()
         self.source = source
+        if self.source is None:
+            self.source = os.getenv(
+                'SPLUNK_SOURCE',
+                '').strip()
         self.sourcetype = sourcetype
+        if self.sourcetype is None:
+            self.sourcetype = os.getenv(
+                'SPLUNK_SOURCETYPE',
+                'json').strip()
         self.verify = verify
+        if self.verify is None:
+            self.verify = bool(os.getenv(
+                'SPLUNK_VERIFY',
+                '0').strip() == '1')
         self.timeout = timeout
+        if self.timeout is None:
+            self.timeout = float(os.getenv(
+                'SPLUNK_TIMEOUT',
+                '10.0').strip())
         self.sleep_interval = sleep_interval
         if self.sleep_interval is None:
             self.sleep_interval = float(os.getenv(
                 'SPLUNK_SLEEP_INTERVAL',
-                '30.0'))
+                '30.0').strip())
+        self.retry_count = retry_count
+        if self.retry_count is None:
+            self.retry_count = int(os.getenv(
+                'SPLUNK_RETRY_COUNT',
+                '10').strip())
+        self.retry_backoff = retry_backoff
+        if self.retry_backoff is None:
+            self.retry_backoff = int(os.getenv(
+                'SPLUNK_RETRY_BACKOFF',
+                '2.0').strip())
+        self.queue_size = queue_size
+        if self.queue_size is None:
+            self.queue_size = int(os.getenv(
+                'SPLUNK_QUEUE_SIZE',
+                '0').strip())
+
         self.log_payload = ''
 
         self.session = requests.Session()
-        self.retry_count = retry_count
-        self.retry_backoff = retry_backoff
         self.num_sent = 0
 
         # Multiprocesing entities
         self.run_once = run_once
         self.processes = []
         self.manager = multiprocessing.Manager()
-        self.queue = self.manager.Queue(maxsize=0)
+        self.queue = self.manager.Queue(maxsize=self.queue_size)
         self.shutdown_event = multiprocessing.Event()
         self.shutdown_ack = multiprocessing.Event()
         self.already_done = multiprocessing.Event()
@@ -129,7 +183,7 @@ class SplunkPublisher(logging.Handler):
                 '0') == '1':
             self.debug = True
 
-        # 'True' if application requested exit
+        # True if application requested exit
         self.shutdown_now = False
 
         self.debug_log('starting debug mode')
@@ -222,7 +276,7 @@ class SplunkPublisher(logging.Handler):
             self.processes = []
             self.debug_log(
                 'start_worker - start multiprocessing.Process')
-            p = Process(
+            p = multiprocessing.Process(
                 target=self.perform_work,
                 args=(
                     self.queue,
@@ -248,7 +302,7 @@ class SplunkPublisher(logging.Handler):
 
         :param log_message: message to log
         """
-        print('splunk-pub {}'.format(log_message))
+        print('mp-splunkpub {}'.format(log_message))
     # end of write_log
 
     def debug_log(
@@ -256,16 +310,26 @@ class SplunkPublisher(logging.Handler):
             log_message):
         """debug_log
 
+        Write logs that only show up in debug mode.
+        To turn on debugging with environment variables
+        please set this environment variable:
+
+        ::
+
+            export SPLUNK_DEBUG="1"
+
         :param log_message: message to log
         """
         if self.debug:
-            print('splunk-pub DEBUG {}'.format(log_message))
+            print('mp-splunkpub DEBUG {}'.format(log_message))
     # end of debug_log
 
     def format_record(
             self,
             record):
         """format_record
+
+        Convert a log record into a Splunk-ready format
 
         :param record: message to format
         """
@@ -308,7 +372,6 @@ class SplunkPublisher(logging.Handler):
             shutdown_ack_event,
             already_done_event):
         """perform_work
-
 
         Process handler function for processing messages
         found in the ``multiprocessing.Manager.queue``
@@ -447,18 +510,14 @@ class SplunkPublisher(logging.Handler):
                     self.num_sent = 0
                 else:
                     self.num_sent += 1
-                r = self.session.post(
-                    url,
+                send_to_splunk.send_to_splunk(
+                    session=self.session,
+                    url=url,
                     data=use_payload,
-                    headers={
-                        'Authorization': 'Splunk {}'.format(
-                            self.token)
-                    },
+                    headers={'Authorization': 'Splunk {}'.format(
+                        self.token)},
                     verify=self.verify,
-                    timeout=self.timeout
-                )
-                # Throws exception for 4xx/5xx status
-                r.raise_for_status()
+                    timeout=self.timeout)
                 self.debug_log(
                     'payload sent successfully')
 
@@ -488,7 +547,6 @@ class SplunkPublisher(logging.Handler):
             use_queue,
             shutdown_event):
         """build_payload_from_queued_messages
-
 
         Empty the queued messages by building a large ``self.log_payload``
 
@@ -550,6 +608,8 @@ class SplunkPublisher(logging.Handler):
                     'payload maximum size exceeded, sending immediately')
                 return False
 
+        self.debug_log('build_payload - done')
+
         return True
     # end of build_payload_from_queued_messages
 
@@ -585,6 +645,9 @@ class SplunkPublisher(logging.Handler):
             shutdown_event):
         """is_shutting_down
 
+        Determine if the parent is shutting down or this was
+        triggered to shutdown
+
         :param shutdown_event: shutdown event
         """
 
@@ -618,12 +681,10 @@ class SplunkPublisher(logging.Handler):
             self.debug_log('shutdown - still shutting down')
             return
         else:
-            self.debug_log('shutdown - start')
+            self.debug_log('shutdown - start - setting instance shutdown')
+            self.shutdown_now = True
             self.shutdown_event.set()
         # if/else already shutting down
-
-        self.debug_log('shutdown - setting shutdown_now=True')
-        self.shutdown_now = True
 
         self.debug_log(
             'shutdown - trying to publish remaining msgs')
@@ -643,4 +704,4 @@ class SplunkPublisher(logging.Handler):
         self.debug_log('shutdown - done')
     # end of shutdown
 
-# end of SplunkPublisher
+# end of MPSplunkPublisher

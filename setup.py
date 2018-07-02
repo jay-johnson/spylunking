@@ -55,7 +55,6 @@ cur_path, cur_script = os.path.split(sys.argv[0])
 os.chdir(os.path.abspath(cur_path))
 
 install_requires = [
-    'billiard',
     'colorlog',
     'coverage',
     'flake8<=3.4.1',

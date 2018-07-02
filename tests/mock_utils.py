@@ -6,7 +6,7 @@ import uuid
 def mock_get_token(
         user=None,
         password=None,
-        url='https://testhost:8089',
+        url='https://testhost:8088',
         verify=False,
         ssl_options=None,
         version='7.0.3',
@@ -67,8 +67,9 @@ class MockRequest:
 
 
 def mock_post_request(
-        self,
-        url,
+        self=None,
+        session=None,
+        url=None,
         data=None,
         headers=None,
         verify=None,
@@ -77,7 +78,8 @@ def mock_post_request(
 
     Mock ``requests.Session.post``
 
-    :param url: url
+    :param self: class obj
+    :param session: requests.Session
     :param data: data dictionary
     :param headers: auth headers
     :param verify: verifiy
@@ -95,3 +97,42 @@ def mock_post_request(
         req.vals)
     return req
 # end of mock_post_request
+
+
+def mock_mp_post_request(
+        self=None,
+        session=None,
+        url=None,
+        data=None,
+        headers=None,
+        verify=None,
+        timeout=None):
+    """mock_mp_post_request
+
+    Mock ``requests.Session.post``
+
+    :param self: class obj
+    :param session: requests.Session
+    :param data: data dictionary
+    :param headers: auth headers
+    :param verify: verifiy
+    :param timeout: timeout
+    """
+    req = MockRequest()
+    req.vals = {
+        'url': url,
+        'data': data,
+        'headers': headers,
+        'verify': verify,
+        'timeout': timeout
+    }
+    os.environ['TEST_MP_POST'] = json.dumps(
+        req.vals)
+    return req
+# end of mock_mp_post_request
+
+
+def mock_test_time():
+    """mock_test_time"""
+    return None
+# end of mock_test_time

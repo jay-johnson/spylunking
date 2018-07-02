@@ -49,7 +49,7 @@
       "verify": false,
       "timeout": 10,
       "retry_count": 20,
-      "flush_interval": 0.2,
+      "sleep_interval": 1,
       "queue_size": 10000000,
       "debug": true
     }

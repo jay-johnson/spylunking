@@ -161,6 +161,7 @@ def setup_logging(
         splunk_token=None,
         splunk_verify=False,
         splunk_handler_name='splunk',
+        splunk_sleep_interval=-1,
         splunk_debug=False):
     """setup_logging
 
@@ -179,6 +180,7 @@ def setup_logging(
     :param splunk_token: optional splunk token
     :param splunk_verify: optional splunk verify - default to False
     :param splunk_handler_name: optional splunk handler name
+    :param splunk_sleep_interval: optional splunk sleep interval
     :param splunk_debug: optional splunk debug - default to False
 
     """
@@ -328,6 +330,11 @@ def setup_logging(
 
                     config['handlers'][splunk_handler_name][key] = \
                         sleep_interval
+                else:
+                    if splunk_sleep_interval >= 0:
+                        key = 'sleep_interval'
+                        config['handlers'][splunk_handler_name][key] = \
+                            splunk_sleep_interval
                 # end of checking for sleep_interval changes
 
                 if os.getenv(
@@ -524,6 +531,7 @@ def build_colorized_logger(
         splunk_index=None,
         splunk_token=None,
         splunk_handler_name='splunk',
+        splunk_sleep_interval=-1,
         splunk_verify=None,
         splunk_debug=False):
     """build_colorized_logger
@@ -555,7 +563,10 @@ def build_colorized_logger(
     :param splunk_token: splunk token - defaults to environment variable:
                          SPLUNK_TOKEN
     :param splunk_handler_name: splunk log config handler name - defaults to :
-                           SPLUNK_HANDLER_NAME
+                                SPLUNK_HANDLER_NAME
+    :param splunk_handler_name: splunk log config handler name - defaults to :
+                                SPLUNK_HANDLER_NAME
+    :param splunk_sleep_interval: optional splunk sleep interval
     :param splunk_verify: splunk verify - defaults to environment variable:
                           SPLUNK_VERIFY=<1|0>
     :param splunk_debug: print out the connection attempt for debugging
@@ -739,6 +750,7 @@ def build_colorized_logger(
         splunk_index=use_splunk_index,
         splunk_token=use_splunk_token,
         splunk_handler_name=use_splunk_handler_name,
+        splunk_sleep_interval=splunk_sleep_interval,
         splunk_verify=use_splunk_verify,
         splunk_debug=use_splunk_debug)
 
@@ -825,6 +837,7 @@ def console_logger(
         splunk_index=None,
         splunk_token=None,
         splunk_handler_name=None,
+        splunk_sleep_interval=-1,
         splunk_verify=None,
         splunk_debug=False):
     """console_logger
@@ -856,6 +869,7 @@ def console_logger(
                          SPLUNK_TOKEN
     :param splunk_handler_name: splunk log config handler name - defaults to :
                            SPLUNK_HANDLER_NAME
+    :param splunk_sleep_interval: optional splunk sleep interval
     :param splunk_verify: splunk verify - defaults to environment variable:
                           SPLUNK_VERIFY=<1|0>
     :param splunk_debug: print out the connection attempt for debugging
@@ -877,6 +891,7 @@ def console_logger(
         splunk_index=splunk_index,
         splunk_token=splunk_token,
         splunk_handler_name=splunk_handler_name,
+        splunk_sleep_interval=splunk_sleep_interval,
         splunk_verify=splunk_verify,
         splunk_debug=splunk_debug)
 # end of console_logger
@@ -897,6 +912,7 @@ def no_date_colors_logger(
         splunk_index=None,
         splunk_token=None,
         splunk_handler_name=None,
+        splunk_sleep_interval=-1,
         splunk_verify=None,
         splunk_debug=False):
     """no_date_colors_logger
@@ -928,6 +944,7 @@ def no_date_colors_logger(
                          SPLUNK_TOKEN
     :param splunk_handler_name: splunk log config handler name - defaults to :
                            SPLUNK_HANDLER_NAME
+    :param splunk_sleep_interval: optional splunk sleep interval
     :param splunk_verify: splunk verify - defaults to environment variable:
                           SPLUNK_VERIFY=<1|0>
     :param splunk_debug: print out the connection attempt for debugging
@@ -949,6 +966,7 @@ def no_date_colors_logger(
         splunk_index=splunk_index,
         splunk_token=splunk_token,
         splunk_handler_name=splunk_handler_name,
+        splunk_sleep_interval=splunk_sleep_interval,
         splunk_verify=splunk_verify,
         splunk_debug=splunk_debug)
 # end of no_date_colors_logger
@@ -969,6 +987,7 @@ def simple_logger(
         splunk_index=None,
         splunk_token=None,
         splunk_handler_name=None,
+        splunk_sleep_interval=-1,
         splunk_verify=None,
         splunk_debug=False):
     """simple_logger
@@ -1001,6 +1020,7 @@ def simple_logger(
                          SPLUNK_TOKEN
     :param splunk_handler_name: splunk log config handler name - defaults to :
                            SPLUNK_HANDLER_NAME
+    :param splunk_sleep_interval: optional splunk sleep interval
     :param splunk_verify: splunk verify - defaults to environment variable:
                           SPLUNK_VERIFY=<1|0>
     :param splunk_debug: print out the connection attempt for debugging
@@ -1022,6 +1042,7 @@ def simple_logger(
         splunk_index=splunk_index,
         splunk_token=splunk_token,
         splunk_handler_name=splunk_handler_name,
+        splunk_sleep_interval=splunk_sleep_interval,
         splunk_verify=splunk_verify,
         splunk_debug=splunk_debug)
 # end of simple_logger
@@ -1042,6 +1063,7 @@ def test_logger(
         splunk_index=None,
         splunk_token=None,
         splunk_handler_name=None,
+        splunk_sleep_interval=-1,
         splunk_verify=None,
         splunk_debug=False):
     """test_logger
@@ -1073,6 +1095,7 @@ def test_logger(
                          SPLUNK_TOKEN
     :param splunk_handler_name: splunk log config handler name - defaults to :
                            SPLUNK_HANDLER_NAME
+    :param splunk_sleep_interval: optional splunk sleep interval
     :param splunk_verify: splunk verify - defaults to environment variable:
                           SPLUNK_VERIFY=<1|0>
     :param splunk_debug: print out the connection attempt for debugging
@@ -1094,6 +1117,7 @@ def test_logger(
         splunk_index=splunk_index,
         splunk_token=splunk_token,
         splunk_handler_name=splunk_handler_name,
+        splunk_sleep_interval=splunk_sleep_interval,
         splunk_verify=splunk_verify,
         splunk_debug=splunk_debug)
 # end of test_logger

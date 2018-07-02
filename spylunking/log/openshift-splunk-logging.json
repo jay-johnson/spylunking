@@ -38,7 +38,7 @@
       "sourcetype": "json",
       "verify": false,
       "timeout": 10,
-      "flush_interval": 0.2,
+      "sleep_interval": 1,
       "retry_count": 5,
       "debug": true
     }
