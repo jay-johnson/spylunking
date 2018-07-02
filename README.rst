@@ -88,13 +88,13 @@ Below is a video showing how to tag your application's logs using the ``LOG_NAME
 
 Commands from the video:
 
-#.	Set an Application Log Name
+#.  Set an Application Log Name
 
     ::
 
         export LOG_NAME=payments
 
-#.	Search for Logs in Splunk
+#.  Search for Logs in Splunk
 
     ::
 
@@ -109,7 +109,7 @@ Commands from the video:
             "results": []
         }
 
-#.	Send Test Logs to Splunk
+#.  Send Test Logs to Splunk
 
     ::
 
@@ -120,7 +120,7 @@ Commands from the video:
         2018-07-02 09:18:22,201 - helloworld - WARNING - testing WARNING message_id=6ab745cb-8a14-41ae-b16e-13c0c80c4963
         2018-07-02 09:18:22,201 - helloworld - ERROR - Testing EXCEPTION with ex=Throw for testing exceptions message_id=26b3c421-46b7-49d2-960b-1ca2ed7b8e03
 
-#.	Search for Test Logs in Splunk
+#.  Search for Test Logs in Splunk
 
     ::
 
