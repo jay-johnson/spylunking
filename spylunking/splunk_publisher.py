@@ -30,15 +30,17 @@ Available environment variables:
 
 import sys
 import atexit
+import traceback
+import multiprocessing
+import threading
 import json
 import logging
 import socket
 import time
-import traceback
-import multiprocessing
 import requests
 import spylunking.send_to_splunk as send_to_splunk
 from threading import Timer
+from spylunking.rnow import rnow
 from spylunking.ppj import ppj
 from spylunking.consts import SPLUNK_HOST
 from spylunking.consts import SPLUNK_PORT
@@ -82,41 +84,51 @@ def perform_exit():
 
     """
     if SPLUNK_DEBUG:
-        print('-------------------------------')
-        print('splunkpub: atexit.register - start')
+        print('{} -------------------------------'.format(
+            rnow()))
+        print('{} splunkpub: atexit.register - start'.format(
+            rnow()))
     worked = True
     for instance in instances:
         try:
             if SPLUNK_DEBUG:
-                print(' - shutting down instance={} - start'.format(
+                print('{} - shutting down instance={} - start'.format(
+                    rnow(),
                     instance))
             instance.shutdown()
             if SPLUNK_DEBUG:
-                print(' - shutting down instance={} - done'.format(
+                print('{} - shutting down instance={} - done'.format(
+                    rnow(),
                     instance))
         except Exception as e:
             worked = False
             if SPLUNK_DEBUG:
                 print(
-                    ' - shutting down instance={} '
+                    '{} - shutting down instance={} '
                     '- hit ex={} during shutdown'.format(
+                        rnow(),
                         instance,
                         e))
         # end of try/ex
     if not worked:
         if SPLUNK_DEBUG:
-            print('Failed exiting')
+            print('{} Failed exiting'.format(
+                rnow()))
     if SPLUNK_DEBUG:
-        print('splunkpub: atexit.register - done')
-        print('-------------------------------')
+        print('{} splunkpub: atexit.register - done'.format(
+            rnow()))
+        print('{} -------------------------------'.format(
+            rnow()))
 # end of perform_exit
 
 
 def force_flush():
     """force_flush"""
     if SPLUNK_DEBUG:
-        print('-------------------------------')
-        print('splunkpub: force_flush - start')
+        print('{} -------------------------------'.format(
+            rnow()))
+        print('{} splunkpub: force_flush - start'.format(
+            rnow()))
     worked = True
     for instance in instances:
         try:
@@ -125,17 +137,21 @@ def force_flush():
             worked = False
             if SPLUNK_DEBUG:
                 print(
-                    ' - force_flush instance={} '
+                    '{} - force_flush instance={} '
                     '- hit ex={}'.format(
+                        rnow(),
                         instance,
                         e))
         # end of try/ex
     if not worked:
         if SPLUNK_DEBUG:
-            print('Failed flushing queues')
+            print('{} Failed flushing queues'.format(
+                rnow()))
     if SPLUNK_DEBUG:
-        print('splunkpub: force_flush - done')
-        print('-------------------------------')
+        print('{} splunkpub: force_flush - done'.format(
+            rnow()))
+        print('{} -------------------------------'.format(
+            rnow()))
 # end of force_flush
 
 
@@ -238,6 +254,7 @@ class SplunkPublisher(logging.Handler):
         self.log_payload = ''
 
         self.timer = None
+        self.tid = None
         self.manager = multiprocessing.Manager()
         self.queue = self.manager.Queue(maxsize=self.queue_size)
         self.session = requests.Session()
@@ -248,6 +265,7 @@ class SplunkPublisher(logging.Handler):
         self.shutdown_now = False
         self.run_once = run_once
 
+        self.debug_count = 0
         self.debug = debug
         if SPLUNK_DEBUG:
             self.debug = True
@@ -285,8 +303,7 @@ class SplunkPublisher(logging.Handler):
             sleep_interval=self.sleep_interval)
 
         self.debug_log((
-            'class init - '
-            'sleep_interval={}').format(
+            'READY init - sleep_interval={}').format(
                 self.sleep_interval))
     # end of __init__
 
@@ -360,7 +377,9 @@ class SplunkPublisher(logging.Handler):
 
         :param log_message: message to log
         """
-        print('splunkpub {}'.format(log_message))
+        print('{} splunkpub {}'.format(
+            rnow(),
+            log_message))
     # end of write_log
 
     def debug_log(
@@ -379,7 +398,9 @@ class SplunkPublisher(logging.Handler):
         :param log_message: message to log
         """
         if self.debug:
-            print('splunkpub DEBUG {}'.format(log_message))
+            print('{} splunkpub DEBUG {}'.format(
+                rnow(),
+                log_message))
     # end of debug_log
 
     def format_record(
@@ -442,15 +463,20 @@ class SplunkPublisher(logging.Handler):
                     'build_payload shutting down')
                 return True
 
-            self.debug_log('reading from queue={}'.format(
-                str(use_queue)))
+            self.debug_count += 1
+            if self.debug_count > 60:
+                self.debug_count = 0
+                self.debug_log('build_payload tid={} queue={}'.format(
+                    self.tid,
+                    str(use_queue)))
             try:
                 msg = use_queue.get(
                     block=True,
                     timeout=self.sleep_interval)
                 self.log_payload = self.log_payload + msg
                 if self.debug:
-                    self.debug_log('got queued message={}'.format(
+                    self.debug_log('{} got={}'.format(
+                        self,
                         ppj(msg)))
                 not_done = not self.queue_empty(
                     use_queue=use_queue)
@@ -463,10 +489,12 @@ class SplunkPublisher(logging.Handler):
                         'have been sent')
                 if ('No such file or directory' in str(e)
                         or 'Broken pipe' in str(e)):
-                    sys.exit(0)
+                    raise e
+                elif ("object, typeid 'Queue' at" in str(e)
+                        and "'__str__()' failed" in str(e)):
+                    raise e
                 not_done = True
             # end of getting log msgs from the queue
-            self.debug_log('done reading from queue')
 
             if not triggered_by_shutdown and self.is_shutting_down(
                     shutdown_event=shutdown_event):
@@ -504,6 +532,8 @@ class SplunkPublisher(logging.Handler):
         self.debug_log((
             'perform_work - start'))
 
+        self.tid = threading.current_thread().ident
+
         if self.sleep_interval > 0:
             # Stop the timer. Happens automatically if this is called
             # via the timer, does not if invoked by force_flush()
@@ -515,7 +545,8 @@ class SplunkPublisher(logging.Handler):
                 return
 
         self.debug_log((
-            'perform_work - ready'))
+            'perform_work - ready tid={}').format(
+                self.tid))
 
         try:
 
@@ -544,14 +575,28 @@ class SplunkPublisher(logging.Handler):
                 # end of try to return if the queue
 
                 self.publish_to_splunk()
+                timer_interval = self.sleep_interval
 
-                if self.is_shutting_down(
-                        shutdown_event=self.shutdown_event):
-                    self.debug_log(
-                        'perform_work - done - shutdown detected')
-                    self.already_done.set()
-                    return
-                # check if done
+                if not_done:
+                    if self.is_shutting_down(
+                            shutdown_event=self.shutdown_event):
+                        self.debug_log(
+                            'perform_work - done - shutdown detected')
+                        self.already_done.set()
+                        return
+                    # check if done
+                    else:
+                        if self.num_sent > 0:
+                            # run again if queue was not cleared
+                            timer_interval = 0.5
+                            self.debug_log(
+                                'queue not empty - run again')
+                        else:
+                            self.debug_log(
+                                'sleep={}s'.format(
+                                    timer_interval))
+                        time.sleep(timer_interval)
+                # end of checking if this should run again or is shutting down
 
             # end of while not done
 
@@ -570,8 +615,8 @@ class SplunkPublisher(logging.Handler):
         self.already_done.set()
 
         self.debug_log((
-            'perform_work - done'))
-
+            'EXIT - perform_work - done - tid={}').format(
+                self.tid))
     # end of perform_work
 
     def publish_to_splunk(
@@ -640,26 +685,6 @@ class SplunkPublisher(logging.Handler):
         else:
             self.debug_log(
                 'no logs to send')
-
-        # Restart the timer
-        if self.sleep_interval > 0:
-            timer_interval = self.sleep_interval
-            if self.is_shutting_down(
-                    shutdown_event=self.shutdown_event):
-                self.debug_log(
-                    'timer reset aborted for shutdown')
-            else:
-                if self.num_sent > 0:
-                    self.debug_log(
-                        'queue not empty - run again')
-                    # Start up again right away if queue was not cleared
-                    timer_interval = 1.0
-
-                self.debug_log('reducing timer - start')
-                self.start_worker_thread(
-                    sleep_interval=timer_interval)
-                self.debug_log('reducing timer - done')
-        # end of checking if this should run again or is shutting down
 
         self.debug_log((
             'publish_to_splunk - done - '

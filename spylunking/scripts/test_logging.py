@@ -52,8 +52,30 @@ def run_main():
             not_done = False
     # end of while
 
-    # sleep to allow the thread/process sleep to pick up these
-    # messages before exiting
+    """
+    Sleep to allow the thread/process to pick up final messages
+    before exiting and stopping the Splunk HTTP publisher.
+
+    You can decrease this delay (in seconds) by reducing
+    the splunk_sleep_interval or by exporting the env var:
+    export SPLUNK_SLEEP_INTERVAL=0.5
+
+    If you set the timer to 0 then it will be a blocking HTTP POST sent
+    to Splunk for each log message. This creates a blocking logger in
+    your application that will wait until each log's HTTP POST
+    was received before continuing.
+
+    Note: Reducing this Splunk sleep timer could result in losing
+          messages that were stuck in the queue when the
+          parent process exits. The multiprocessing
+          Splunk Publisher was built to do this, but will
+          not work in certain frameworks like Celery
+          as it requires access to spawn daemon processes to
+          prevent this 'message loss' case during exiting.
+          Applications using this library should ensure
+          there's no critical log messages stuck in a queue
+          when stopping a long-running process.
+    """
     time.sleep(2)
 
 # end of run_main

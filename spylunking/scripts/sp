@@ -16,6 +16,7 @@ with a local or remote splunk server:
     export SPLUNK_PASSWORD="123321"
     export SPLUNK_USER="trex"
     export SPLUNK_TOKEN="<Optional pre-existing Splunk token>"
+    export SPLUNK_INDEX="<splunk index>"
 
 Pull Logs with a Query on the Command Line
 ==========================================
@@ -57,6 +58,7 @@ from spylunking.ppj import ppj
 from spylunking.consts import SUCCESS
 from spylunking.consts import SPLUNK_USER
 from spylunking.consts import SPLUNK_PASSWORD
+from spylunking.consts import SPLUNK_TOKEN
 from spylunking.consts import SPLUNK_API_ADDRESS
 from spylunking.consts import SPLUNK_INDEX
 from spylunking.consts import SPLUNK_VERBOSE
@@ -342,6 +344,16 @@ def run_main():
         dest='json_view',
         action='store_true')
     parser.add_argument(
+        '-t',
+        help=(
+            '(Optional) pre-existing Splunk token '
+            'which can be set using export '
+            'SPLUNK_TOKEN=<token>  - if provided '
+            'the user (-u) and password (-p) '
+            'arguments are not required'),
+        required=False,
+        dest='token')
+    parser.add_argument(
         '-m',
         help='(Optional) verbose message when getting logs',
         required=False,
@@ -363,6 +375,7 @@ def run_main():
 
     user = SPLUNK_USER
     password = SPLUNK_PASSWORD
+    token = SPLUNK_TOKEN
     address = SPLUNK_API_ADDRESS
     index_name = SPLUNK_INDEX
     verbose = SPLUNK_VERBOSE
@@ -396,6 +409,8 @@ def run_main():
         verbose = True
     if args.message_details:
         show_message_details = args.message_details
+    if args.token:
+        token = args.token
     if args.json_view:
         json_view = True
         code_view = False
@@ -409,19 +424,40 @@ def run_main():
         search_query = ' '.join(
             args.query_args)
 
-    usage = ('Please run with -u <username> '
-             '-p <password> '
-             '-a <host address as: fqdn:port> ')
-
     valid = True
     if not user or user == 'user-not-set':
-        log.error('missing user')
+        log.critical('missing user')
         valid = False
     if not password or password == 'password-not-set':
-        log.error('missing password')
+        log.critical('missing password')
         valid = False
+    if not index_name:
+        log.critical('missing splunk index')
+        valid = False
+    if token:
+        # if the token is present,
+        # then the user and the password are not required
+        if not valid and index_name:
+            valid = True
     if not valid:
-        log.error(usage)
+        log.critical(
+            'Please run with the following arguments:\n')
+        log.error(
+            '-u <username> -p <password> '
+            '-i <index> -t <token if user and password not set> '
+            '-a <host address as: fqdn:port>')
+        log.critical(
+            '\n'
+            'Or you can export the following '
+            'environment variables and retry the command: '
+            '\n')
+        log.error(
+            'export SPLUNK_ADDRESS="splunkenterprise:8088"\n'
+            'export SPLUNK_API_ADDRESS="splunkenterprise:8089"\n'
+            'export SPLUNK_PASSWORD="123321"\n'
+            'export SPLUNK_USER="trex"\n'
+            'export SPLUNK_INDEX="antinex"\n'
+            'export SPLUNK_TOKEN="<Optional pre-existing Splunk token>"\n')
         sys.exit(1)
 
     if verbose:
@@ -508,6 +544,7 @@ def run_main():
         user=user,
         password=password,
         address=address,
+        token=token,
         query_dict=search_data,
         verify=verify)
 

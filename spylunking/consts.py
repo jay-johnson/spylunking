@@ -57,7 +57,9 @@ if SPLUNK_TOKEN:
     SPLUNK_TOKEN = SPLUNK_TOKEN.strip()
 SPLUNK_INDEX = os.getenv(
     'SPLUNK_INDEX',
-    'no-index-set').strip()
+    None)
+if SPLUNK_INDEX:
+    SPLUNK_INDEX = SPLUNK_INDEX.strip()
 SPLUNK_SOURCE = os.getenv(
     'SPLUNK_SOURCE',
     '').strip()

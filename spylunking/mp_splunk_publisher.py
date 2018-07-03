@@ -39,6 +39,7 @@ import requests
 import signal
 import multiprocessing
 import spylunking.send_to_splunk as send_to_splunk
+from spylunking.rnow import rnow
 from spylunking.ppj import ppj
 from spylunking.consts import SPLUNK_HOST
 from spylunking.consts import SPLUNK_PORT
@@ -296,7 +297,9 @@ class MPSplunkPublisher(logging.Handler):
 
         :param log_message: message to log
         """
-        print('mp-splunkpub {}'.format(log_message))
+        print('{} mpsplunkpub {}'.format(
+            rnow(),
+            log_message))
     # end of write_log
 
     def debug_log(
@@ -315,7 +318,9 @@ class MPSplunkPublisher(logging.Handler):
         :param log_message: message to log
         """
         if self.debug:
-            print('mp-splunkpub DEBUG {}'.format(log_message))
+            print('{} mpsplunkpub DEBUG {}'.format(
+                rnow(),
+                log_message))
     # end of debug_log
 
     def format_record(
