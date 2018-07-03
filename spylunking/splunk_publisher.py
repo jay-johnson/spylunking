@@ -565,7 +565,7 @@ class SplunkPublisher(logging.Handler):
                         self.debug_log(
                             'perform_work - done - detected shutdown')
                     else:
-                        self.write_log((
+                        self.debug_log((
                             'perform_work - done - '
                             'Exception shutting down with ex={}').format(
                                 e))
