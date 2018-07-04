@@ -39,18 +39,16 @@
       "stream": "ext://sys.stdout"
     },
     "splunk": {
-      "class": "spylunking.splunk_publisher.SplunkPublisher",
-      "host": "localhost",
-      "port": "8088",
+      "class": "spylunking.tcp_splunk_publisher.TCPSplunkPublisher",
+      "address": "splunkenterprise:1514",
+      "token": null,
       "index": "antinex",
-      "token": "ebe8bb62-a41b-4768-b5ec-f8c5953ed2fe",
       "formatter": "splunk",
-      "sourcetype": "json",
-      "verify": false,
-      "timeout": 10,
-      "retry_count": 60,
-      "sleep_interval": 1,
-      "queue_size": 1000000,
+      "sourcetype": "usejson",
+      "hostname": "local",
+      "custom_dict": {
+        "version": 1
+      },
       "debug": true
     }
   },

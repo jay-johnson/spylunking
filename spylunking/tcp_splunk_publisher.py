@@ -17,7 +17,7 @@ Available environment variables:
 import os
 import sys
 import socket
-import json
+import datetime
 import spylunking.socket_send as socket_send
 from logging.handlers import SocketHandler
 from spylunking.rnow import rnow
@@ -223,8 +223,7 @@ class TCPSplunkPublisher(SocketHandler, object):
                 log_msg = ('{}').format(
                     body)
             else:
-                final_edits = json.loads(body)
-                log_msg = json.dumps(final_edits)
+                log_msg = body
         # end of support for building different
         # Splunk socket-ready messages
 
@@ -287,6 +286,8 @@ class TCPSplunkPublisher(SocketHandler, object):
 
         # for now leave as None
         use_vals['asctime'] = None
+        use_vals['systime'] = datetime.datetime.now().strftime(
+            '%Y-%m-%d %H:%M:%S.%f')
 
         self.formatter.set_fields(
             new_fields=use_vals)
