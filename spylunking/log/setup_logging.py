@@ -39,6 +39,12 @@ Splunk optional tuning environment variables:
     export SPLUNK_DEBUG="<debug the publisher - 1 enable debug|0 off>"
     export SPLUNK_VERBOSE="<debug the sp command line tool - 1 enable|0 off>"
 
+Change the absolute path to the logging config JSON file:
+
+::
+
+    export SHARED_LOG_CFG=<absolute path to logging config JSON file>
+
 """
 
 import os

@@ -1,6 +1,34 @@
 Spylunking API Reference
 ------------------------
 
+Using TCP to Publish to Splunk
+------------------------------
+
+Here is the code for the Splunk Publisher that uses a thread to send logs to the configured Splunk server.
+
+.. automodule:: spylunking.tcp_splunk_publisher
+   :members: TCPSplunkPublisher
+
+Using Threads to Publish to Splunk
+----------------------------------
+
+Here is the code for the Splunk Publisher that uses a thread to send logs to the configured Splunk server.
+
+.. note:: Each created logger will spawn a separate thread with its own queue for log messages. When the parent process exits, please consider that the queue may hold log messages which can be lost due to the parent process exiting before they get a chance to be pushed to Splunk. 
+
+.. automodule:: spylunking.splunk_publisher
+   :members: SplunkPublisher
+
+Using Multiprocesing to Publish to Splunk
+-----------------------------------------
+
+Here is the code for the Splunk Publisher that uses a multiprocessing to send logs to the configured Splunk server. 
+
+.. note:: Each created logger will fork a separate process with its own queue for log messages. When the parent process exits, please consider that the queue may hold log messages which can take some time to finish publishing before the process exits.
+
+.. automodule:: spylunking.mp_splunk_publisher
+   :members: MPSplunkPublisher
+
 Get a Splunk Service Session Key
 ================================
 
@@ -205,25 +233,13 @@ The ``build_colorized_logger`` calls the ``setup_logging`` method that builds th
 .. automodule:: spylunking.log.setup_logging
    :members: build_colorized_logger,setup_logging,SplunkFormatter,console_logger,no_date_colors_logger,simple_logger
 
+Exit Case Handling for the Thread and Multiprocessing Publishers
+================================================================
+
+.. automodule:: spylunking.wait_for_exit
+   :members: wait_for_exit
+
 .. toctree::
    :maxdepth: 2
 
    utilities
-
-
-Using Threads to Publish to Splunk
-----------------------------------
-
-Here is the code for the Splunk Publisher that uses a thread to send logs to the configured Splunk server.
-
-.. automodule:: spylunking.splunk_publisher
-   :members: SplunkPublisher
-
-Using Multiprocesing to Publish to Splunk
------------------------------------------
-
-Here is the code for the Splunk Publisher that uses a multiprocessing to send logs to the configured Splunk server.
-
-.. automodule:: spylunking.mp_splunk_publisher
-   :members: MPSplunkPublisher
-

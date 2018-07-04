@@ -8,12 +8,30 @@ Spylunking - Splunk + Python Logging
 
 Drill down into your logs with an integrated, colorized logger and search tools set up with the included Splunk docker sandbox.
 
-This repository is an example on using the Splunk HEC REST API running in a docker container with a python logger. It supports using previously-shared Splunk tokens or logging in using user and password as arguments or environment variables.
-
-This project holds a Splunk-ready python logger with search tools for quickly finding logs published to the included Splunk docker sandbox. Here's what your logs can look like using spylunking with the included, docker Splunk web app:
+This repository creates Splunk-ready, colorized Python loggers that work with a Splunk TCP Port or the Splunk HEC REST API. Both of these endpoints are automatically set up for use with the included docker container. 
 
 .. image:: https://imgur.com/SUdcyWf.png
-    :alt: Splunk web app python logs from the Spylunking test app
+    :alt: Splunk web app Python logs from the Spylunking test app
+
+Sample Log Handlers
+===================
+
+Depending on your application's use case you can use one of the included Python logging handlers:
+
+- `TCP Splunk Publisher <https://github.com/jay-johnson/spylunking/blob/master/spylunking/tcp_splunk_publisher.py>`__
+- `Threaded Splunk Publisher <https://github.com/jay-johnson/spylunking/blob/master/spylunking/splunk_publisher.py>`__
+- `Multiprocessing Splunk Publisher <https://github.com/jay-johnson/spylunking/blob/master/spylunking/mp_splunk_publisher.py>`__
+
+The log publishing and search tools support using existing Splunk tokens or logging in using the configured user and password arguments or from environment variables. 
+
+Sample Log Config JSON Files
+============================
+
+Here are the sample logging config JSON files:
+
+- `TCP Splunk Publisher Log Config <https://github.com/jay-johnson/spylunking/blob/master/spylunking/log/shared-logging.json>`__
+- `Threaded Splunk Publisher Log Config <https://github.com/jay-johnson/spylunking/blob/master/spylunking/log/threads-shared-logging.json>`__
+- `Multiprocessing Splunk Publisher Log Config <https://github.com/jay-johnson/spylunking/blob/master/spylunking/log/mp-shared-logging.json>`__
 
 .. list-table::
    :header-rows: 1
@@ -28,7 +46,7 @@ This project holds a Splunk-ready python logger with search tools for quickly fi
            :target: http://spylunking.readthedocs.io/en/latest/
 
 Getting Started
----------------
+===============
 
 #.  Clone the repo
 
@@ -67,6 +85,7 @@ password: **123321**
 
     get_splunk_token.py
     955324da-742b-43d4-9746-bcbedf6ae7f4
+    export SPLUNK_TOKEN=955324da-742b-43d4-9746-bcbedf6ae7f4
 
 Please wait at least 30 seconds while the container is getting ready. You may see output like this when the ``splunk`` container is not ready yet or stops running:
 
@@ -170,7 +189,13 @@ Use the command line tool: **sp** to search for recent logs.
 Write Splunk Logs
 -----------------
 
-By default the container creates an **antinex** index with a user token for the user **trex** to search the index. You can use the included **test_logging.py** script to create some sample logs to verify the splunk logging integration is working.
+By default, the container creates a Splunk index called: **antinex** with a user token for the user **trex** to search the index. Once the Splunk container is running, you can use the included **test_logging.py** script to create sample logs to verify the Splunk logging integration is working. The default logger will send logs over TCP using the `TCP Splunk Publisher <https://github.com/jay-johnson/spylunking/blob/master/spylunking/tcp_splunk_publisher.py>`__. To change this, you can export the optional environment variable ``SHARED_LOG_CFG`` to the absolute path of another logging config JSON file like:
+
+::
+
+    export SHARED_LOG_CFG=<absolute path to logging config JSON file>
+
+Send logs using the command: ``test_logging.py``
 
 ::
 

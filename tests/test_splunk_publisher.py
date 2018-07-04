@@ -130,8 +130,6 @@ class TestSplunkPublisher(unittest.TestCase):
     def test_publish_to_splunk(
             self):
         """test_publish_to_splunk
-
-        :param mock_request: mock request object
         """
         # Silence root logger
         log = logging.getLogger('')
@@ -180,6 +178,6 @@ class TestSplunkPublisher(unittest.TestCase):
         self.assertEqual(
             expected_output['sourcetype'],
             found_data['sourcetype'])
-    # end of publish_to_splunk
+    # end of test_publish_to_splunk
 
 # end of TestSplunkPublisher

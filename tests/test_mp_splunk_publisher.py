@@ -118,11 +118,9 @@ class TestMPSplunkPublisher(unittest.TestCase):
     @mock.patch(
         ('spylunking.send_to_splunk.send_to_splunk'),
         new=mock_mp_post_request)
-    def test_publish_to_splunk(
+    def test_mp_publish_to_splunk(
             self):
-        """test_publish_to_splunk
-
-        :param mock_request: mock request object
+        """test_mp_publish_to_splunk
         """
         # Silence root logger
         log = logging.getLogger('')
@@ -160,6 +158,6 @@ class TestMPSplunkPublisher(unittest.TestCase):
         self.assertEqual(
             expected_output['sourcetype'],
             found_data['sourcetype'])
-    # end of publish_to_splunk
+    # end of test_mp_publish_to_splunk
 
 # end of TestMPSplunkPublisher

@@ -4,8 +4,8 @@
 Publish functional testing logs to splunk using the logger
 """
 
-import time
 import uuid
+import spylunking.wait_for_exit as wait_for_exit
 from spylunking.log.setup_logging import build_colorized_logger
 
 
@@ -53,30 +53,11 @@ def run_main():
     # end of while
 
     """
-    Sleep to allow the thread/process to pick up final messages
-    before exiting and stopping the Splunk HTTP publisher.
-
-    You can decrease this delay (in seconds) by reducing
-    the splunk_sleep_interval or by exporting the env var:
-    export SPLUNK_SLEEP_INTERVAL=0.5
-
-    If you set the timer to 0 then it will be a blocking HTTP POST sent
-    to Splunk for each log message. This creates a blocking logger in
-    your application that will wait until each log's HTTP POST
-    was received before continuing.
-
-    Note: Reducing this Splunk sleep timer could result in losing
-          messages that were stuck in the queue when the
-          parent process exits. The multiprocessing
-          Splunk Publisher was built to do this, but will
-          not work in certain frameworks like Celery
-          as it requires access to spawn daemon processes to
-          prevent this 'message loss' case during exiting.
-          Applications using this library should ensure
-          there's no critical log messages stuck in a queue
-          when stopping a long-running process.
+    The threaded and multiprocessing Splunk Publishers
+    require an exit sleep to prevent message loss when
+    the parent process exits. The other handler(s) do not.
     """
-    time.sleep(2)
+    wait_for_exit.wait_for_exit(log)
 
 # end of run_main
 

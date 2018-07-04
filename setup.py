@@ -88,20 +88,21 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'spylunking'))
 setup(
     name='spylunking',
     cmdclass={'test': PyTest},
-    version='1.0.36',
+    version='1.1.0',
     description=(
         'Spylunking - Drill down into your logs with an integrated, '
-        'colorized logger and search tools. Includes a Splunk sandbox '
+        'colorized logger with search tools. Includes a Splunk sandbox '
         'running in docker.'
         ''),
     long_description=(
         'Spylunking - Drill down into your logs with an integrated, '
-        'colorized logger and search tools. Includes a Splunk sandbox '
-        'running in docker.'
+        'colorized logger with search tools. Includes a Splunk sandbox '
+        'running in docker and working Python handlers for sending logs '
+        'over TCP or the Splunk HEC REST API. The HEC REST API handler '
+        'can use either '
+        'a non-blocking thread or a non-blocking multiprocessing process '
+        'to send logs to Splunk.'
         '\n'
-        'A Splunk-ready python logger with search tools for '
-        'quickly finding logs published to the included Splunk '
-        'docker sandbox. '
         ''),
     author='Jay Johnson',
     author_email='jay.p.h.johnson@gmail.com',

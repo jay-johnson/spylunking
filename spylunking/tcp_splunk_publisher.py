@@ -15,12 +15,11 @@ Available environment variables:
 """
 
 import os
-import sys
 import socket
 import datetime
-import spylunking.socket_send as socket_send
 from logging.handlers import SocketHandler
 from spylunking.rnow import rnow
+from spylunking.consts import IS_PY2
 from spylunking.consts import SPLUNK_TCP_ADDRESS
 from spylunking.consts import SPLUNK_INDEX
 from spylunking.consts import SPLUNK_SOURCE
@@ -93,11 +92,13 @@ class TCPSplunkPublisher(SocketHandler, object):
 
         self.host = None
         self.port = None
-        self.address = address
+
+        # self.address is used in the SocketHandler base class
+        self.tcp_address = address
         if SPLUNK_TCP_ADDRESS:
-            self.address = SPLUNK_TCP_ADDRESS
-        self.host = self.address.split(':')[0]
-        self.port = int(self.address.split(':')[1])
+            self.tcp_address = SPLUNK_TCP_ADDRESS
+        self.host = self.tcp_address.split(':')[0]
+        self.port = int(self.tcp_address.split(':')[1])
 
         super(TCPSplunkPublisher, self).__init__(
             self.host,
@@ -128,7 +129,8 @@ class TCPSplunkPublisher(SocketHandler, object):
 
         self.included_vals = {}
         self.included_vals['index'] = self.index
-        self.included_vals['source'] = self.source
+        if self.source:
+            self.included_vals['source'] = self.source
         self.included_vals['sourcetype'] = self.sourcetype
         self.included_vals['hostname'] = self.hostname
         if name:
@@ -210,20 +212,20 @@ class TCPSplunkPublisher(SocketHandler, object):
         # is for an authenticated Splunk TCP Port
         log_msg = None
         if self.token:
-            if sys.version_info < (3, 0):
+            if IS_PY2:
                 log_msg = ('token={}, body={}').format(
                     self.token,
                     body)
             else:
                 log_msg = ('token={}, body={}').format(
                     self.token,
-                    body).encode('utf-8')
+                    body).encode()
         else:
-            if sys.version_info < (3, 0):
+            if IS_PY2:
                 log_msg = ('{}').format(
                     body)
             else:
-                log_msg = body
+                log_msg = body.encode()
         # end of support for building different
         # Splunk socket-ready messages
 
@@ -232,40 +234,6 @@ class TCPSplunkPublisher(SocketHandler, object):
 
         return log_msg
     # end of build_into_splunk_tcp_message
-
-    def send(
-            self,
-            s):
-        """send
-
-        Override the SocketHandler.send method
-
-        :param s: log msg to send
-        """
-        self.debug_log('creating socket')
-        if self.sock:
-            self.sock.close()
-            self.sock = None
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect((self.host, self.port))
-
-        if self.sock:
-            try:
-                self.debug_log('sock={} send={}'.format(
-                    self.sock,
-                    s))
-                socket_send.socket_send(
-                    self.sock,
-                    msg=s,
-                    debug=self.debug)
-            except Exception as e:
-                self.debug_log('closing socket for ex={}'.format(
-                    e))
-                self.sock.close()
-                self.sock = None
-            # end of try/ex
-        # end of sending when the socket is not None
-    # end of send
 
     def makePickle(
             self,
@@ -280,6 +248,8 @@ class TCPSplunkPublisher(SocketHandler, object):
         """
 
         use_vals = self.custom
+        if not use_vals:
+            use_vals = {}
         for i in self.included_vals:
             if i not in use_vals:
                 use_vals[i] = self.included_vals[i]
@@ -297,7 +267,7 @@ class TCPSplunkPublisher(SocketHandler, object):
         self.debug_log('build={}'.format(
             log_json_str))
         splunk_msg = self.build_into_splunk_tcp_message(
-            body=log_json_str)
+            body=log_json_str) + b'\n'
         self.debug_log('send={}'.format(
             splunk_msg))
         return splunk_msg
