@@ -42,7 +42,6 @@ Splunk optional tuning environment variables:
 """
 
 import os
-import copy
 import datetime
 import json
 import logging.config
@@ -84,9 +83,11 @@ class SplunkFormatter(jsonlogger.JsonFormatter):
 
         :param new_fields: new fields to patch in
         """
-        self.org_fields = copy.deepcopy(
-            new_fields)
-        self.fields_to_add = new_fields
+        self.org_fields = {}
+        self.fields_to_add = {}
+        for k in new_fields:
+            self.org_fields[k] = new_fields[k]
+            self.fields_to_add[k] = new_fields[k]
     # end of set_fields
 
     def get_current_fields(
@@ -103,7 +104,9 @@ class SplunkFormatter(jsonlogger.JsonFormatter):
         :param update_fields: dict with values for
                               updating fields_to_add
         """
-        self.fields_to_add = copy.deepcopy(self.org_fields)
+        self.fields_to_add = {}
+        for k in self.org_fields:
+            self.fields_to_add[k] = self.org_fields[k]
         self.fields_to_add.update(update_fields)
     # end of updated_current_fields
 

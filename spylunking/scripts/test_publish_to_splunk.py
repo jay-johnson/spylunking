@@ -57,7 +57,7 @@ def format_record(
 
     log_msg = ('{}').format(
         json.dumps(log_dict))
-    if token:
+    if use_token:
         log_msg = ('token={}, body={}').format(
             use_token,
             json.dumps(log_dict))
