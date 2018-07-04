@@ -37,6 +37,9 @@ SPLUNK_PORT = int(os.getenv(
 SPLUNK_API_PORT = int(os.getenv(
     'SPLUNK_API_PORT',
     '8089').strip())
+SPLUNK_TCP_PORT = int(os.getenv(
+    'SPLUNK_TCP_PORT',
+    '1514').strip())
 SPLUNK_ADDRESS = os.getenv(
     'SPLUNK_ADDRESS',
     '{}:{}'.format(
@@ -47,6 +50,11 @@ SPLUNK_API_ADDRESS = os.getenv(
     '{}:{}'.format(
         SPLUNK_HOST,
         SPLUNK_API_PORT)).strip()
+SPLUNK_TCP_ADDRESS = os.getenv(
+    'SPLUNK_TCP_ADDRESS',
+    '{}:{}'.format(
+        SPLUNK_HOST,
+        SPLUNK_TCP_PORT)).strip()
 SPLUNK_HOSTNAME = os.getenv(
     'SPLUNK_HOSTNAME',
     '')

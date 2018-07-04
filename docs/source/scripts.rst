@@ -48,3 +48,8 @@ Get Splunk Service Token (Session Key)
 .. automodule:: spylunking.scripts.show_service_token
    :members: run_main
 
+Splunk Functional Test Publisher
+================================
+
+.. automodule:: spylunking.scripts.test_publish_to_splunk
+   :members: format_record,run_main

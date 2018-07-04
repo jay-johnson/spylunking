@@ -9,47 +9,43 @@ services:
     environment:
       SPLUNK_START_ARGS: --accept-license --answer-yes
       SPLUNK_ENABLE_LISTEN: 9997
-      SPLUNK_ADD: tcp 1514
     entrypoint: "/bin/sh -c '/bin/echo \"starting entrypoint\" 
                  && cd /opt/splunk 
                  && /bin/date -u +\"%Y-%m-%d %H:%M:%S\" > /opt/splunk/service.log 
-                 && /bin/date -u +\"%Y-%m-%d %H:%M:%S\" > /opt/splunk/boot.log 
                  && /bin/date -u +\"%Y-%m-%d %H:%M:%S\"
                  && touch ./etc/.ui_login 
-                 && /bin/echo \"building splunk starter\" >> /opt/splunk/boot.log 
+                 && /bin/echo \"building splunk starter\" >> /opt/splunk/service.log
                  && /bin/echo \"#!/bin/bash\" >> /opt/start-all.sh
                  && /bin/echo \"/usr/bin/nohup /bin/bash /sbin/entrypoint.sh start-service >> /opt/splunk/service.log \" >> /opt/start-all.sh
                  && /bin/chmod 777 /opt/start-all.sh
-                 && /bin/cat /opt/start-all.sh >> /opt/splunk/boot.log
-                 && /bin/echo \"running splunk starter\" >> /opt/splunk/boot.log
-                 && /usr/bin/nohup /opt/start-all.sh & >> /opt/splunk/boot.log
-                 && /bin/echo \"sleeping for startup\" >> /opt/splunk/boot.log
+                 && /bin/cat /opt/start-all.sh >> /opt/splunk/service.log
+                 && /bin/echo \"running splunk starter\" >> /opt/splunk/service.log
+                 && /usr/bin/nohup /opt/start-all.sh & >> /opt/splunk/service.log
+                 && /bin/echo \"sleeping for startup\" >> /opt/splunk/service.log
                  && sleep 20
-                 && /bin/echo \"\" >> /opt/splunk/boot.log
+                 && /bin/echo \"\" >> /opt/splunk/service.log
                  && /bin/echo \"loading remote login\" 
                  && /bin/date -u +\"%Y-%m-%d %H:%M:%S\"
-                 && /bin/date -u +\"%Y-%m-%d %H:%M:%S\" >> /opt/splunk/boot.log
                  && /bin/date -u +\"%Y-%m-%d %H:%M:%S\" >> /opt/splunk/service.log
-                 && /bin/echo \"installing remote login support\" >> /opt/splunk/boot.log
+                 && /bin/echo \"installing remote login support\" >> /opt/splunk/service.log
                  && sed -i \"/\\[general\\]/aallowRemoteLogin = always\"
                     /opt/splunk/etc/system/local/server.conf
-                 && /bin/echo \"\" >> /opt/splunk/boot.log
-                 && cat /opt/splunk/etc/system/local/server.conf >> /opt/splunk/boot.log
-                 && /bin/echo \"\" >> /opt/splunk/boot.log
+                 && /bin/echo \"\" >> /opt/splunk/service.log
+                 && cat /opt/splunk/etc/system/local/server.conf >> /opt/splunk/service.log
                  && /bin/echo \"\" >> /opt/splunk/service.log
                  && /bin/echo \"\"
-                 && /bin/date -u +\"%Y-%m-%d %H:%M:%S\" >> /opt/splunk/boot.log
                  && /bin/date -u +\"%Y-%m-%d %H:%M:%S\" >> /opt/splunk/service.log
-                 && /bin/echo \"creating user\" >> /opt/splunk/boot.log
+                 && /bin/echo \"creating user\" >> /opt/splunk/service.log
                  && /bin/echo \"creating user\"
                  && ./bin/splunk add user trex -password 123321 -role admin -auth admin:changeme
-                 && /bin/echo \"creating index antinex\" >> /opt/splunk/boot.log
+                 && /bin/echo \"\"
                  && /bin/echo \"creating index antinex\" >> /opt/splunk/service.log
-                 && ./bin/splunk add index antinex -auth \"trex:123321\" >> /opt/splunk/boot.log
-                 && /bin/echo \"enabling HEC in Global Settings\" >> /opt/splunk/boot.log
+                 && ./bin/splunk add index antinex -auth \"trex:123321\" >> /opt/splunk/service.log
+                 && /bin/echo \"\"
                  && /bin/echo \"enabling HEC in Global Settings\" >> /opt/splunk/service.log
-                 && ./bin/splunk http-event-collector enable -uri https://localhost:8089 -auth \"trex:123321\" >> /opt/splunk/boot.log
-                 && /bin/echo \"creating token\" >> /opt/splunk/boot.log
+                 && ./bin/splunk http-event-collector enable -uri https://localhost:8089 -auth \"trex:123321\" >> /opt/splunk/service.log
+                 && /bin/echo \"\"
+                 && /bin/echo \"creating token\" >> /opt/splunk/service.log
                  && ./bin/splunk 
                     http-event-collector create 
                     antinex-token \"antinex-token\" 
@@ -57,34 +53,43 @@ services:
                     -sourcetype json
                     -uri \"https://localhost:8089\" 
                     -auth \"trex:123321\" 
-                 && /bin/echo \"enabling Token for HEC access\" >> /opt/splunk/boot.log
+                 && /bin/echo \"\"
                  && /bin/echo \"enabling Token for HEC access\" >> /opt/splunk/service.log
                  && ./bin/splunk 
                     http-event-collector enable 
                     -uri https://localhost:8089 
                     -name antinex-token
-                    -auth \"trex:123321\" >> /opt/splunk/boot.log
+                    -auth \"trex:123321\" >> /opt/splunk/service.log
                  && /bin/echo \"\"
-                 && /bin/echo \"restarting splunk\" >> /opt/splunk/boot.log
+                 && /bin/echo \"creating tcp interface port 1514\"
+                 && /bin/echo \"\" >> /opt/splunk/etc/system/default/props.conf
+                 && /bin/echo \"[usejson]\" >> /opt/splunk/etc/system/default/props.conf
+                 && /bin/echo \"SHOULD_LINEMERGE = false\" >> /opt/splunk/etc/system/default/props.conf
+                 && /bin/echo \"KV_MODE = json\" >> /opt/splunk/etc/system/default/props.conf
+                 && /bin/echo \"TIME_FORMAT = %Y-%m-%dT%H:%M:%S.%6N%:z\" >> /opt/splunk/etc/system/default/props.conf
+                 && /bin/echo \"\"
+                 && /bin/echo \"creating tcp interface port 1514\"
+                 && ./bin/splunk
+                    add
+                    tcp 1514
+                    -sourcetype usejson
+                    -index antinex
+                    -auth \"trex:123321\" >> /opt/splunk/service.log
+                 && /bin/echo \"\"
+                 && /bin/echo \"restarting splunk\" >> /opt/splunk/service.log
                  && /bin/echo \"restarting splunk\" >> /opt/splunk/service.log
                  && ./bin/splunk restart >> /opt/splunk/service.log
-                 && /bin/echo \"done restarting splunk\" >> /opt/splunk/boot.log
                  && /bin/echo \"done restarting splunk\" >> /opt/splunk/service.log
-                 && /bin/echo \"\" >> /opt/splunk/boot.log
                  && /bin/echo \"\" >> /opt/splunk/service.log
                  && /bin/echo \"Boot completed.\"
-                 && /bin/echo \"Boot completed.\" >> /opt/splunk/boot.log
+                 && /bin/echo \"Boot completed.\" >> /opt/splunk/service.log
                  && /bin/date -u +\"%Y-%m-%d %H:%M:%S\" 
                  && /bin/echo \"\"
                  && /bin/echo \"Debugging tools:\"
                  && /bin/echo \"\"
-                 && /bin/echo \"Tail the boot log:\"
-                 && /bin/echo \"docker exec -it splunk /usr/bin/tail -f /opt/splunk/boot.log\"
-                 && /bin/echo \"Tail the startup log:\"
+                 && /bin/echo \"Tail the service log:\"
                  && /bin/echo \"docker exec -it splunk /usr/bin/tail -f /opt/splunk/service.log\"
                  && /bin/echo \"\"
-                 && /bin/echo \"Pull the boot log:\"
-                 && /bin/echo \"./logs.sh b\"
                  && /bin/echo \"Pull the startup log:\"
                  && /bin/echo \"./logs.sh s\"
                  && /bin/echo \"Pull the docker log:\"
