@@ -80,6 +80,12 @@ password: **123321**
 
     get_splunk_token.py
     955324da-742b-43d4-9746-bcbedf6ae7f4
+
+Set the Splunk Environment Variables
+
+::
+
+    export SPLUNK_INDEX=antinex
     export SPLUNK_TOKEN=955324da-742b-43d4-9746-bcbedf6ae7f4
 
 Please wait at least 30 seconds while the container is getting ready. You may see output like this when the ``splunk`` container is not ready yet or stops running:
