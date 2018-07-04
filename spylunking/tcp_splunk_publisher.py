@@ -17,6 +17,9 @@ Available environment variables:
 import os
 import sys
 import socket
+import datetime
+import time
+import json
 from logging.handlers import SocketHandler
 from spylunking.rnow import rnow
 from spylunking.consts import SPLUNK_TCP_ADDRESS
@@ -109,6 +112,7 @@ class TCPSplunkPublisher(SocketHandler, object):
 
         self.custom = custom_dict
         self.debug = SPLUNK_DEBUG or debug
+        self.is_py2 = sys.version[0] == '2'
 
         if hostname is None:
             self.hostname = socket.gethostname()
@@ -116,7 +120,9 @@ class TCPSplunkPublisher(SocketHandler, object):
             self.hostname = hostname
 
         self.debug_log(
-            'ready')
+            'ready {}:{}'.format(
+                self.host,
+                self.port))
     # end of __init__
 
     def write_log(
@@ -192,7 +198,17 @@ class TCPSplunkPublisher(SocketHandler, object):
                 log_msg = ('{}').format(
                     body)
             else:
-                log_msg = body.encode('utf-8')
+                final_edits = json.loads(body)
+                final_edits['index'] = self.index
+                final_edits['source'] = 'tcp:1514'
+                final_edits['sourcetype'] = self.sourcetype
+                final_edits['hostname'] = self.hostname
+                final_edits['timestamp'] = time.time()
+                final_edits['time'] = datetime.datetime.utcnow().strftime(
+                    '%Y-%m-%d %H:%M:%S,%f')
+                final_edits.pop('asctime', None)
+
+                log_msg = json.dumps(final_edits)
         # end of support for building different
         # Splunk socket-ready messages
 
@@ -201,6 +217,39 @@ class TCPSplunkPublisher(SocketHandler, object):
 
         return log_msg
     # end of build_into_splunk_tcp_message
+
+    def send(
+            self,
+            s):
+        """send
+
+        Override the SocketHandler.send method
+
+        :param s: log msg to send
+        """
+        self.debug_log('creating socket')
+        if self.sock:
+            self.sock.close()
+            self.sock = None
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.connect((self.host, self.port))
+
+        if self.sock:
+            try:
+                if self.is_py2:
+                    self.sock.send(s)
+                else:
+                    print('sock={} send={}'.format(
+                        self.sock,
+                        s.encode()))
+                    self.sock.send(s.encode())
+            except Exception:
+                self.debug_log('closing socket')
+                self.sock.close()
+                self.sock = None
+            # end of try/ex
+        # end of send
+    # end of send
 
     def makePickle(
             self,

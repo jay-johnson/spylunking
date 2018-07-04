@@ -26,9 +26,6 @@ def format_record(
     use_token = token
     if not use_token:
         use_token = SPLUNK_TOKEN
-    if not use_token:
-        print('missing token or env var for SPLUNK_TOKEN')
-        return None
 
     filename = __file__.split('/')[-1]
     log_dict = {
@@ -52,7 +49,7 @@ def format_record(
         'exc': None,
         'timestamp': time.time(),
         'time': datetime.datetime.utcnow().strftime(
-            '%Y-%m-%d %H:%M:%S,%.3f')
+            '%Y-%m-%d %H:%M:%S,%f')
     }
 
     log_msg = ('{}').format(
@@ -93,13 +90,16 @@ def run_main(
         msg='hello-world messages with json fields show up in splunk',
         token=token)
     if log_msg:
-        print('publishing log={} address={}'.format(
-            log_msg,
-            use_address))
         is_py2 = sys.version[0] == '2'
         if is_py2:
+            print('publishing log={} address={}'.format(
+                log_msg,
+                use_address))
             s.send(log_msg)
         else:
+            print('publishing log={} address={}'.format(
+                log_msg.encode(),
+                use_address))
             s.send(log_msg.encode())
     else:
         print('failed to build a log msg={}'.format(
