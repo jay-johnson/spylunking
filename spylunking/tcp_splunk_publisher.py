@@ -17,9 +17,8 @@ Available environment variables:
 import os
 import sys
 import socket
-import datetime
-import time
 import json
+import spylunking.socket_send as socket_send
 from logging.handlers import SocketHandler
 from spylunking.rnow import rnow
 from spylunking.consts import SPLUNK_TCP_ADDRESS
@@ -27,6 +26,9 @@ from spylunking.consts import SPLUNK_INDEX
 from spylunking.consts import SPLUNK_SOURCE
 from spylunking.consts import SPLUNK_SOURCETYPE
 from spylunking.consts import SPLUNK_DEBUG
+from spylunking.consts import SPLUNK_LOG_NAME
+from spylunking.consts import SPLUNK_DEPLOY_CONFIG
+from spylunking.consts import SPLUNK_ENV_NAME
 
 
 class TCPSplunkPublisher(SocketHandler, object):
@@ -47,7 +49,7 @@ class TCPSplunkPublisher(SocketHandler, object):
 
         export SPLUNK_LOG_TOKEN=<Optional Log Token>
 
-    Here is the additional lines added to the splunk
+    Here are the additional lines added to the splunk
     props.conf for validation:
 
     ::
@@ -66,6 +68,9 @@ class TCPSplunkPublisher(SocketHandler, object):
             hostname=None,
             source=None,
             sourcetype='json',
+            name=None,
+            dc=None,
+            env=None,
             custom_dict=None,
             debug=False,
             **kwargs):
@@ -78,6 +83,9 @@ class TCPSplunkPublisher(SocketHandler, object):
         :param hostname: Splunk address <host:port>
         :param source: source for log records
         :param sourcetype: json
+        :param name: logger name
+        :param dc: deployment config
+        :param env: environment name
         :param custom_dict: custom json dictionary to merge on
                             self.formatter.format()
         :param debug: enable debug mode
@@ -112,12 +120,29 @@ class TCPSplunkPublisher(SocketHandler, object):
 
         self.custom = custom_dict
         self.debug = SPLUNK_DEBUG or debug
-        self.is_py2 = sys.version[0] == '2'
 
         if hostname is None:
             self.hostname = socket.gethostname()
         else:
             self.hostname = hostname
+
+        self.included_vals = {}
+        self.included_vals['index'] = self.index
+        self.included_vals['source'] = self.source
+        self.included_vals['sourcetype'] = self.sourcetype
+        self.included_vals['hostname'] = self.hostname
+        if name:
+            self.included_vals['name'] = name
+        else:
+            self.included_vals['name'] = SPLUNK_LOG_NAME
+        if dc:
+            self.included_vals['dc'] = dc
+        else:
+            self.included_vals['dc'] = SPLUNK_DEPLOY_CONFIG
+        if env:
+            self.included_vals['env'] = env
+        else:
+            self.included_vals['env'] = SPLUNK_ENV_NAME
 
         self.debug_log(
             'ready {}:{}'.format(
@@ -199,15 +224,6 @@ class TCPSplunkPublisher(SocketHandler, object):
                     body)
             else:
                 final_edits = json.loads(body)
-                final_edits['index'] = self.index
-                final_edits['source'] = 'tcp:1514'
-                final_edits['sourcetype'] = self.sourcetype
-                final_edits['hostname'] = self.hostname
-                final_edits['timestamp'] = time.time()
-                final_edits['time'] = datetime.datetime.utcnow().strftime(
-                    '%Y-%m-%d %H:%M:%S,%f')
-                final_edits.pop('asctime', None)
-
                 log_msg = json.dumps(final_edits)
         # end of support for building different
         # Splunk socket-ready messages
@@ -236,19 +252,20 @@ class TCPSplunkPublisher(SocketHandler, object):
 
         if self.sock:
             try:
-                if self.is_py2:
-                    self.sock.send(s)
-                else:
-                    print('sock={} send={}'.format(
-                        self.sock,
-                        s.encode()))
-                    self.sock.send(s.encode())
-            except Exception:
-                self.debug_log('closing socket')
+                self.debug_log('sock={} send={}'.format(
+                    self.sock,
+                    s))
+                socket_send.socket_send(
+                    self.sock,
+                    msg=s,
+                    debug=self.debug)
+            except Exception as e:
+                self.debug_log('closing socket for ex={}'.format(
+                    e))
                 self.sock.close()
                 self.sock = None
             # end of try/ex
-        # end of send
+        # end of sending when the socket is not None
     # end of send
 
     def makePickle(
@@ -263,8 +280,16 @@ class TCPSplunkPublisher(SocketHandler, object):
         :param record: log record to format as a socket-ready message
         """
 
+        use_vals = self.custom
+        for i in self.included_vals:
+            if i not in use_vals:
+                use_vals[i] = self.included_vals[i]
+
+        # for now leave as None
+        use_vals['asctime'] = None
+
         self.formatter.set_fields(
-            new_fields=self.custom)
+            new_fields=use_vals)
         self.debug_log('format={}'.format(
             record))
         log_json_str = self.formatter.format(record)

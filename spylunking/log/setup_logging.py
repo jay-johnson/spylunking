@@ -81,6 +81,9 @@ class SplunkFormatter(jsonlogger.JsonFormatter):
             new_fields):
         """set_fields
 
+        Change the fields that will be added in on
+        a log
+
         :param new_fields: new fields to patch in
         """
         self.org_fields = {}
@@ -135,23 +138,33 @@ class SplunkFormatter(jsonlogger.JsonFormatter):
 
     def format(
             self,
-            record):
+            record,
+            datefmt='%Y:%m:%d %H:%M:%S.%f'):
         """format
 
         :param record: message object to format
         """
+
+        now = datetime.datetime.now()
+        utc_now = datetime.datetime.utcnow()
+        asctime = None
+        if self.datefmt:
+            asctime = now.strftime(
+                self.datefmt)
+        else:
+            asctime = now.strftime(
+                datefmt)
+
         message = {
-            'timestamp': record.created,
+            'time': record.created,
+            'timestamp': utc_now.strftime(
+                '%Y-%m-%dT%H:%M:%S.%fZ'),
+            'asctime': asctime,
             'path': record.pathname,
             'message': record.getMessage(),
             'exc': None,
             'logger_name': record.name
         }
-
-        if 'asctime' in self._required_fields:
-            record.asctime = self.formatTime(
-                record,
-                self.datefmt)
 
         if record.exc_info and not message.get('exc'):
             message['exc'] = self.formatException(

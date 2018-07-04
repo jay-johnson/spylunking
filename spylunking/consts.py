@@ -4,6 +4,7 @@ Constants file
 """
 
 import os
+import sys
 
 
 SUCCESS = 0
@@ -14,6 +15,8 @@ NOT_RUN = 4
 INVALID = 5
 NOT_DONE = 6
 
+# version of python
+IS_PY2 = sys.version[0] == '2'
 
 LOG_HANDLER_NAME = os.getenv(
     'LOG_HANDLER_NAME',
