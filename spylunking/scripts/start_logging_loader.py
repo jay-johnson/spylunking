@@ -11,7 +11,6 @@ let the client catch up.
 
 import datetime
 import uuid
-import time
 from spylunking.log.setup_logging import build_colorized_logger
 
 
@@ -80,7 +79,6 @@ def run_main():
                         float(num_logs_per_batch / running_time),
                         total_exec_time))
                 last_checkpoint = checkpoint
-                time.sleep(0.01)
                 num_logs_per_batch = 0.0
     # end of while
     except Exception as e:

@@ -88,7 +88,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'spylunking'))
 setup(
     name='spylunking',
     cmdclass={'test': PyTest},
-    version='1.1.0',
+    version='1.1.1',
     description=(
         'Spylunking - Drill down into your logs with an integrated, '
         'colorized logger with search tools. Includes a Splunk sandbox '
