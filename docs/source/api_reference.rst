@@ -4,7 +4,7 @@ Spylunking API Reference
 Using TCP to Publish to Splunk
 ------------------------------
 
-Here is the code for the Splunk Publisher that uses a thread to send logs to the configured Splunk server.
+Here is the code for the Splunk Publisher that uses a TCP ``logging.SocketHandler`` to send logs to the configured Splunk server.
 
 .. automodule:: spylunking.tcp_splunk_publisher
    :members: TCPSplunkPublisher
