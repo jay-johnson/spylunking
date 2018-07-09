@@ -149,8 +149,10 @@ def show_search_results(
         prefix_log = (
             '{} {} - {} -').format(
                 log_dict.get(
-                    'asctime',
-                    ''),
+                    'systime',
+                    log_dict.get(
+                        'asctime',
+                        '')),
                 use_log_name,
                 log_dict.get(
                     'levelname',
