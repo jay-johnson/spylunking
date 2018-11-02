@@ -103,13 +103,13 @@ Please wait at least 30 seconds while the container is getting ready. You may se
     ConnectionRefusedError: [Errno 111] Connection refused
 
 Publishing Logs to Splunk using the Spylunking Logger
-------------------------------------------------------
+-----------------------------------------------------
 
 Below is a video showing how to tag your application's logs using the ``LOG_NAME`` environment variable. Doing this allows you to quickly find them in Splunk using the included ``sp`` command line tool.
 
-.. raw:: html
-
-    <a href="https://asciinema.org/a/189711?autoplay=1" target="_blank"><img src="https://asciinema.org/a/189711.png"/></a>
+.. image:: https://asciinema.org/a/189711.png
+    :target: https://asciinema.org/a/189711?autoplay=1
+    :alt: Publishing Logs to Splunk using the Spylunking Logger
 
 Commands from the video:
 
