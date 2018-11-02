@@ -9,6 +9,15 @@ except ImportError:
 
 from setuptools.command.test import test as TestCommand
 
+long_description = ''
+try:
+    import pypandoc
+    long_description = pypandoc.convert(
+        'README.rst',
+        'rst')
+except(IOError, ImportError):
+    long_description = open('README.rst').read()
+
 
 class PyTest(TestCommand):
     """PyTest"""
@@ -88,22 +97,13 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'spylunking'))
 setup(
     name='spylunking',
     cmdclass={'test': PyTest},
-    version='1.2.0',
+    version='1.2.1',
     description=(
         'Spylunking - Drill down into your logs with an integrated, '
         'colorized logger with search tools. Includes a Splunk sandbox '
         'running in docker.'
         ''),
-    long_description=(
-        'Spylunking - Drill down into your logs with an integrated, '
-        'colorized logger with search tools. Includes a Splunk sandbox '
-        'running in docker and working Python handlers for sending logs '
-        'over TCP or the Splunk HEC REST API. The HEC REST API handler '
-        'can use either '
-        'a non-blocking thread or a non-blocking multiprocessing process '
-        'to send logs to Splunk.'
-        '\n'
-        ''),
+    long_description=long_description,
     author='Jay Johnson',
     author_email='jay.p.h.johnson@gmail.com',
     url='https://github.com/jay-johnson/spylunking',
