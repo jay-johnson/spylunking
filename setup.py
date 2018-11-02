@@ -9,14 +9,13 @@ except ImportError:
 
 from setuptools.command.test import test as TestCommand
 
-long_description = ''
-try:
-    import pypandoc
-    long_description = pypandoc.convert(
-        'README.rst',
-        'rst')
-except(IOError, ImportError):
-    long_description = open('README.rst').read()
+"""
+https://packaging.python.org/guides/making-a-pypi-friendly-readme/
+check the README.rst works on pypi as the
+long_description with:
+twine check dist/*
+"""
+long_description = open('README.rst').read()
 
 
 class PyTest(TestCommand):
@@ -71,7 +70,6 @@ install_requires = [
     'pipenv',
     'pycodestyle<=2.3.1',
     'pylint',
-    'pypandoc',
     'python-json-logger',
     'pytest',
     'recommonmark',
@@ -96,7 +94,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'spylunking'))
 setup(
     name='spylunking',
     cmdclass={'test': PyTest},
-    version='1.2.6',
+    version='1.2.7',
     description=(
         'Spylunking - Drill down into your logs with an integrated, '
         'colorized logger with search tools. Includes a Splunk sandbox '
