@@ -86,7 +86,7 @@ install_requires = [
 
 if sys.version_info < (2, 7):
     warnings.warn(
-        'Less than Python 3.5 is not supported.',
+        'Less than Python 2.7 is not supported.',
         DeprecationWarning)
 
 
@@ -96,7 +96,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'spylunking'))
 setup(
     name='spylunking',
     cmdclass={'test': PyTest},
-    version='1.2.4',
+    version='1.2.5',
     description=(
         'Spylunking - Drill down into your logs with an integrated, '
         'colorized logger with search tools. Includes a Splunk sandbox '
@@ -133,6 +133,7 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
         'Operating System :: OS Independent',
+        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: Implementation :: PyPy',
