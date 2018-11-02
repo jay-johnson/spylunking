@@ -73,6 +73,7 @@ install_requires = [
     'pylint',
     'python-json-logger',
     'pytest',
+    'pypandoc',
     'recommonmark',
     'requests',
     'sphinx',
@@ -97,7 +98,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'spylunking'))
 setup(
     name='spylunking',
     cmdclass={'test': PyTest},
-    version='1.2.1',
+    version='1.2.2',
     description=(
         'Spylunking - Drill down into your logs with an integrated, '
         'colorized logger with search tools. Includes a Splunk sandbox '
