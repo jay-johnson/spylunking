@@ -269,7 +269,7 @@ def setup_logging(
         config = config
     # end of if passed in set in an environment variable
 
-    if not config:
+    if not config and default_path:
         path = default_path
         file_name = default_path.split('/')[-1]
         if config_name:
@@ -460,7 +460,7 @@ def setup_logging(
                         '%(log_color)s'
                         '%(message)s%(reset)s')
                 },
-                '{}'.format(splunk_handler_name): {
+                splunk_handler_name: {
                     '()': 'spylunking.log.setup_logging.SplunkFormatter',
                     'format': (
                         '%(asctime)s - %(name)s - %(levelname)s '
@@ -485,26 +485,6 @@ def setup_logging(
                     'level': 'INFO',
                     'formatter': 'simple',
                     'stream': 'ext://sys.stdout'
-                },
-                '{}'.format(splunk_handler_name): {
-                    'class': (
-                        'spylunking.splunk_publisher.SplunkPublisher'),
-                    'host': '{}'.format(
-                        splunk_host),
-                    'port': '{}'.format(
-                        splunk_port),
-                    'index': '{}'.format(
-                        SPLUNK_INDEX),
-                    'token': '{}'.format(
-                        SPLUNK_TOKEN),
-                    'formatter': '{}'.format(splunk_handler_name),
-                    'sourcetype': SPLUNK_SOURCETYPE,
-                    'verify': SPLUNK_VERIFY,
-                    'timeout': SPLUNK_TIMEOUT,
-                    'retry_count': SPLUNK_RETRY_COUNT,
-                    'sleep_interval': SPLUNK_SLEEP_INTERVAL,
-                    'queue_size': SPLUNK_QUEUE_SIZE,
-                    'debug': SPLUNK_DEBUG
                 }
             },
             'loggers': {
@@ -521,11 +501,26 @@ def setup_logging(
                 ]
             }
         }
-        if splunk_token:
-            config['root']['handlers'].append(
-                '{}'.format(splunk_handler_name))
-        logging.config.dictConfig(
-            config)
+        if splunk_token and splunk_host and splunk_port:
+            config['handlers'][splunk_handler_name] = {
+                'class': (
+                    'spylunking.splunk_publisher.SplunkPublisher'),
+                'host': splunk_host,
+                'port': splunk_port,
+                'index': SPLUNK_INDEX,
+                'token': splunk_token,
+                'formatter': splunk_handler_name,
+                'sourcetype': SPLUNK_SOURCETYPE,
+                'verify': SPLUNK_VERIFY,
+                'timeout': SPLUNK_TIMEOUT,
+                'retry_count': SPLUNK_RETRY_COUNT,
+                'sleep_interval': SPLUNK_SLEEP_INTERVAL,
+                'queue_size': SPLUNK_QUEUE_SIZE,
+                'debug': SPLUNK_DEBUG
+            }
+            config['root']['handlers'].append(splunk_handler_name)
+        # only add splunk if the token is set for HEC
+        logging.config.dictConfig(config)
         return
     # end of if valid config dict or not
 # end of setup_logging
