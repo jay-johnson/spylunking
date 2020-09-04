@@ -271,7 +271,7 @@ def show_non_search_results(
     try:
         log_dict = json.loads(
             log_rec)
-    except Exception as e:
+    except Exception:
         log_dict = None
     # end of try/ex
 

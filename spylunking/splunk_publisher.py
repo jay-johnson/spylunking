@@ -337,7 +337,7 @@ class SplunkPublisher(logging.Handler):
                 # Put log message into queue; worker thread will pick up
                 self.queue.put_nowait(
                     record)
-            except Exception as e:
+            except Exception:
                 self.write_log(
                     'log queue full - log data will be dropped.')
         else:

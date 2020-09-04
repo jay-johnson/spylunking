@@ -149,7 +149,7 @@ def search(
         res['record'] = response_dict
     except Exception as e:
         res['err'] = (
-            'Failed searching user={} url={} query={} '
+            'Failed searching user={} url={} '
             'ex={}').format(
                 user,
                 query_dict,

@@ -81,7 +81,7 @@ def run_main():
                 last_checkpoint = checkpoint
                 num_logs_per_batch = 0.0
     # end of while
-    except Exception as e:
+    except Exception:
         print('stopping')
     # end of try/ex
 

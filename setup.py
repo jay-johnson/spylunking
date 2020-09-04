@@ -65,10 +65,10 @@ os.chdir(os.path.abspath(cur_path))
 install_requires = [
     'colorlog',
     'coverage',
-    'flake8<=3.4.1',
-    'pep8>=1.7.1',
+    'flake8',
+    'pep8',
     'pipenv',
-    'pycodestyle<=2.3.1',
+    'pycodestyle',
     'pylint',
     'python-json-logger',
     'pytest',
@@ -94,7 +94,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'spylunking'))
 setup(
     name='spylunking',
     cmdclass={'test': PyTest},
-    version='1.2.9',
+    version='1.2.10',
     description=(
         'Spylunking - Drill down into your logs with an integrated, '
         'colorized logger with search tools. Includes a Splunk sandbox '
