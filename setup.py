@@ -100,6 +100,7 @@ setup(
         'colorized logger with search tools. Includes a Splunk sandbox '
         'running in docker.'
         ''),
+    long_description_content_type='text/x-rst',
     long_description=long_description,
     author='Jay Johnson',
     author_email='jay.p.h.johnson@gmail.com',
