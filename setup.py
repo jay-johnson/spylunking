@@ -77,10 +77,15 @@ install_requires = [
     'sphinx',
     'sphinx-autobuild',
     'sphinx_rtd_theme',
-    'tox',
     'unittest2',
     'mock'
 ]
+
+extras_require = {
+    'tox': [
+        'tox',
+    ],
+}
 
 if sys.version_info < (2, 7):
     warnings.warn(
@@ -112,6 +117,7 @@ setup(
     ],
     package_data={},
     install_requires=install_requires,
+    extras_require=extras_require,
     test_suite='setup.spylunking_test_suite',
     tests_require=[
         'pytest'
